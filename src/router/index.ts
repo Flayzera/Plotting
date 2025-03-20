@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Budgets from '@/views/Budgets.vue'
+import BudgetList from '@/views/BudgetList.vue'
 import NewBudget from '@/views/NewBudget.vue'
 
 const router = createRouter({
@@ -8,7 +8,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'orçamentos',
-      component: Budgets,
+      component: BudgetList,
     },
     {
       path: '/novo-orcamento',

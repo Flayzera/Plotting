@@ -23,16 +23,14 @@
       <Column field="status" header="Status">
         <template #body="{ data }">
           <Tag :value="data.status"
-            :severity="data.status === 'Pendente' ? 'warn' : data.status === 'Aprovado' ? 'success' : data.status === 'Rejeitado' ? 'danger' : '{{ data.status }}'" />
+            :severity="data.status === 'Pendente' ? 'warn' : data.status === 'Aprovado' ? 'success' : data.status === 'Rejeitado' ? 'danger' : 'info'" />
         </template>
       </Column>
       <Column header="Ações">
         <template #body="{ data }">
           <div class="flex gap-2">
-            <Button icon="pi pi-eye" severity="info" @click="viewBudget(data.id)" tooltip="Ver Orçamento" rounded
-              text />
-            <Button icon="pi pi-file" severity="success" @click="generatePDF(data.id)" tooltip="Gerar PDF" rounded
-              text />
+            <Button icon="pi pi-eye" severity="info" tooltip="Ver Orçamento" rounded text />
+            <Button icon="pi pi-file" severity="success" tooltip="Gerar PDF" rounded text />
             <Button icon="pi pi-trash" severity="danger" @click="confirmDelete(data.id)" tooltip="Excluir" rounded
               text />
             <Select v-model="data.status" :options="statusOptions" optionLabel="name" optionValue="code" />
@@ -51,7 +49,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -63,11 +61,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-
+import { type Budget } from '../interfaces'
 const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
-const budgets = ref([])
+const budgets = ref<Budget[]>([])
 
 const statusOptions = ref([
   { name: 'Pendente', code: 'Pendente' },
@@ -82,7 +80,6 @@ const navigateToNew = () => {
   router.push('/novo-orcamento')
 }
 
-
 const loadBudgets = () => {
   const savedBudgets = localStorage.getItem('budgets')
   if (savedBudgets) {
@@ -90,7 +87,7 @@ const loadBudgets = () => {
   }
 }
 
-const confirmDelete = (id) => {
+const confirmDelete = (id: string) => {
   confirm.require({
     message: 'Tem certeza que deseja excluir este orçamento?',
     header: 'Confirmar Exclusão',
@@ -99,7 +96,7 @@ const confirmDelete = (id) => {
   })
 }
 
-const deleteBudget = (id) => {
+const deleteBudget = (id: string) => {
   budgets.value = budgets.value.filter(budget => budget.id !== id)
   localStorage.setItem('budgets', JSON.stringify(budgets.value))
   toast.add({
@@ -110,7 +107,7 @@ const deleteBudget = (id) => {
   })
 }
 
-const formatCurrency = (value) => {
+const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL'
