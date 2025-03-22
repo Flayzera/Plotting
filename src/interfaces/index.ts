@@ -1,37 +1,30 @@
-export type BudgetStatus = 'Pendente' | 'Aprovado' | 'Rejeitado'
+export type BudgetStatus = 'Pendente' | 'Aprovado' | 'Rejeitado' | 'Concluido'
 
 export interface Client {
-  clientName: string
-  clientCompany: string
+  id: number
+  name: string
+  company: string
+  whatsapp: string
 }
 
 export interface Material {
-  id: string
-  product: string
+  id: number
+  name: string
   brand: string
-  measure: string
-  unitPrice: string
-  quantity: string
-  totalPrice: string
-}
-
-export interface Budget {
-  id: string
-  product: string
-  brand: string
-  measure: string
-  unitPrice: string
-  quantity: string
-  totalPrice: string
+  quantity: number
+  unit: string
+  price: number
+  total: number
 }
 
 export interface BudgetData {
-  id: string
-  createdAt: string
-  status: BudgetStatus
+  id: number
   client: Client
   materials: Material[]
-  totalValue: number
+  total: number
+  status: BudgetStatus
+  createdAt: string
+  updatedAt: string
 }
 
 
