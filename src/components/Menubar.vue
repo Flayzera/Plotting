@@ -23,7 +23,7 @@ const items = ref([
   {
     label: 'Orçamentos',
     command: () => {
-      router.push('/')
+      router.push('/orcamentos')
     }
   },
   {

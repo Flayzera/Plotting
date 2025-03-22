@@ -4,46 +4,79 @@
       <h1 class="text-4xl font-bold">Orçamentos</h1>
       <Button icon="pi pi-plus" label="Novo Orçamento" @click="navigateToNew" severity="success" />
     </div>
-    <div class="text-base mb-4 uppercase">
-      <Tag value="Orçamentos Pendentes" severity="warn" />
-    </div>
-    <DataTable :value="budgets" stripedRows paginator :rows="5">
-      <Column header=" Proposta" />
-      <Column field="client.clientName" header="Cliente" />
-      <Column field="createdAt" header="Data Criação">
-        <template #body="{ data }">
-          {{ new Date(data.createdAt).toLocaleDateString('pt-BR') }}
-        </template>
-      </Column>
-      <Column field="totalValue" header="Valor Total">
-        <template #body="{ data }">
-          {{ formatCurrency(data.totalValue) }}
-        </template>
-      </Column>
-      <Column field="status" header="Status">
-        <template #body="{ data }">
-          <Tag :value="data.status"
-            :severity="data.status === 'Pendente' ? 'warn' : data.status === 'Aprovado' ? 'success' : data.status === 'Rejeitado' ? 'danger' : 'info'" />
-        </template>
-      </Column>
-      <Column header="Ações">
-        <template #body="{ data }">
-          <div class="flex gap-2">
-            <Button icon="pi pi-eye" severity="info" tooltip="Ver Orçamento" rounded text />
-            <Button icon="pi pi-file" severity="success" tooltip="Gerar PDF" rounded text />
-            <Button icon="pi pi-trash" severity="danger" @click="confirmDelete(data.id)" tooltip="Excluir" rounded
-              text />
-            <Select v-model="data.status" :options="statusOptions" optionLabel="name" optionValue="code" />
 
-          </div>
-        </template>
-      </Column>
-      <template #footer>
-        <div class="flex justify-end">
-          <p>Total de Orçamentos: {{ budgets.length }}</p>
+    <div v-for="status in statusOptions" :key="status.code" class="mb-8">
+      <div v-if="getBudgetsByStatus(status.code).length > 0">
+        <div class="text-base mb-4 uppercase">
+          <Tag :value="status.name" :severity="getStatusSeverity(status.code)" />
         </div>
-      </template>
-    </DataTable>
+        <DataTable :value="getBudgetsByStatus(status.code)" v-model:expandedRows="expandedRows" dataKey="id" paginator
+          :rows="5" :rowsPerPageOptions="[5, 10, 20, 50]"
+          currentPageReportTemplate="{first} to {last} of {totalRecords}"
+          paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink">
+          <Column expander style="width: 3rem" />
+          <Column header="Proposta">
+            <template #body="{ data }">
+              #{{ data.id.toString().padStart(4, '0') }}
+            </template>
+          </Column>
+          <Column field="client.name" header="Cliente" />
+          <Column field="createdAt" header="Data Criação">
+            <template #body="{ data }">
+              {{ new Date(data.createdAt).toLocaleDateString('pt-BR') }}
+            </template>
+          </Column>
+          <Column field="total" header="Valor Total">
+            <template #body="{ data }">
+              {{ formatCurrency(data.total) }}
+            </template>
+          </Column>
+          <Column header="Ações">
+            <template #body="{ data }">
+              <div class="flex gap-2">
+                <Button icon="pi pi-eye" severity="info" tooltip="Ver Orçamento" rounded text />
+                <Button icon="pi pi-file" severity="success" tooltip="Gerar PDF" @click="generatePDF" rounded text />
+                <Button icon="pi pi-trash" severity="danger" @click="handleDeleteBudget(data.id)" tooltip="Excluir"
+                  rounded text />
+                <Select v-model="data.status" :options="statusOptions" optionLabel="name" optionValue="code"
+                  @change="handleStatusChange(data)" />
+              </div>
+            </template>
+          </Column>
+          <template #expansion="slotProps">
+            <div class="p-3">
+              <h5 class="text-lg font-semibold mb-3">Detalhes do Orçamento</h5>
+              <DataTable :value="slotProps.data.materials" class="mb-4">
+                <Column field="name" header="Produto"></Column>
+                <Column field="brand" header="Marca"></Column>
+                <Column field="quantity" header="Quantidade"></Column>
+                <Column field="unit" header="Unidade">
+                  <template #body="{ data }">
+                    {{ data.unit }}cm
+                  </template>
+                </Column>
+                <Column field="price" header="Valor Unitário">
+                  <template #body="{ data }">
+                    {{ formatCurrency(data.price) }}
+                  </template>
+                </Column>
+                <Column field="total" header="Total">
+                  <template #body="{ data }">
+                    {{ formatCurrency(data.total) }}
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+          </template>
+          <template #footer>
+            <div class="flex justify-end font-bold">
+              <span>Total: {{ formatCurrency(getTotalValueByStatus(status.code)) }}</span>
+            </div>
+          </template>
+        </DataTable>
+      </div>
+    </div>
+
     <ConfirmDialog />
     <Toast />
   </div>
@@ -54,56 +87,96 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import ConfirmDialog from 'primevue/confirmdialog'
-import Select from 'primevue/select';
-import Tag from 'primevue/tag';
+import Select from 'primevue/select'
+import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { type Budget } from '../interfaces'
+import { useBudgetStore } from '../stores/budgetStore'
+import type { BudgetData, BudgetStatus } from '../interfaces'
+
 const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
-const budgets = ref<Budget[]>([])
+const budgetStore = useBudgetStore()
 
 const statusOptions = ref([
-  { name: 'Pendente', code: 'Pendente' },
-  { name: 'Aprovado', code: 'Aprovado' },
-  { name: 'Concluido', code: 'Concluido' },
-  { name: 'Rejeitado', code: 'Rejeitado' },
+  { name: 'Pendentes', code: 'Pendente' as BudgetStatus },
+  { name: 'Aprovados', code: 'Aprovado' as BudgetStatus },
+  { name: 'Concluídos', code: 'Concluido' as BudgetStatus },
+  { name: 'Rejeitados', code: 'Rejeitado' as BudgetStatus },
+])
 
-]);
-
+const expandedRows = ref({})
 
 const navigateToNew = () => {
   router.push('/novo-orcamento')
 }
 
-const loadBudgets = () => {
-  const savedBudgets = localStorage.getItem('budgets')
-  if (savedBudgets) {
-    budgets.value = JSON.parse(savedBudgets)
+const handleStatusChange = async (budget: BudgetData) => {
+  try {
+    await budgetStore.updateBudget(budget.id.toString(), { status: budget.status })
+    toast.add({
+      severity: 'success',
+      summary: 'Sucesso',
+      detail: 'Status atualizado com sucesso!',
+      life: 3000
+    })
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Erro',
+      detail: 'Erro ao atualizar status. Tente novamente.',
+      life: 3000
+    })
   }
 }
 
-const confirmDelete = (id: string) => {
+const generatePDF = async () => {
+  // TODO: Implementar geração de PDF
+  toast.add({
+    severity: 'info',
+    summary: 'Em desenvolvimento',
+    detail: 'Funcionalidade de geração de PDF em desenvolvimento.',
+    life: 3000
+  })
+}
+
+const handleDeleteBudget = (id: string) => {
   confirm.require({
     message: 'Tem certeza que deseja excluir este orçamento?',
     header: 'Confirmar Exclusão',
     icon: 'pi pi-exclamation-triangle',
-    accept: () => deleteBudget(id)
-  })
-}
-
-const deleteBudget = (id: string) => {
-  budgets.value = budgets.value.filter(budget => budget.id !== id)
-  localStorage.setItem('budgets', JSON.stringify(budgets.value))
-  toast.add({
-    severity: 'success',
-    summary: 'Sucesso',
-    detail: 'Orçamento excluído com sucesso!',
-    life: 3000
+    acceptProps: {
+      label: 'Sim',
+      severity: 'danger',
+    },
+    rejectProps: {
+      label: 'Não',
+      severity: 'secondary',
+    },
+    accept: async () => {
+      try {
+        await budgetStore.deleteBudget(id)
+        toast.add({
+          severity: 'success',
+          summary: 'Sucesso',
+          detail: 'Orçamento excluído com sucesso!',
+          life: 3000
+        })
+      } catch (error) {
+        console.error('Erro ao excluir orçamento:', error)
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'Erro ao excluir orçamento. Tente novamente.',
+          life: 3000
+        })
+      }
+    }
   })
 }
 
@@ -114,7 +187,34 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
-onMounted(() => {
-  loadBudgets()
+const getBudgetsByStatus = (status: BudgetStatus) => {
+  return budgetStore.budgets.filter(b => b.status === status)
+}
+
+const getTotalValueByStatus = (status: BudgetStatus) => {
+  return getBudgetsByStatus(status).reduce((sum, budget) => sum + budget.total, 0)
+}
+
+const getStatusSeverity = (status: BudgetStatus) => {
+  switch (status) {
+    case 'Pendente':
+      return 'warn'
+    case 'Aprovado':
+      return 'success'
+    case 'Concluido':
+      return 'info'
+    case 'Rejeitado':
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+onMounted(async () => {
+  try {
+    await budgetStore.loadBudgets()
+  } catch {
+    // Não mostrar erro aqui, pois é esperado não ter orçamentos no início
+  }
 })
 </script>
