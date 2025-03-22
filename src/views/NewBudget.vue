@@ -150,7 +150,7 @@
     <div class="flex flex-col md:flex-row justify-end items-center text-center self-center gap-2 p-4 md:p-6">
       <Button label="Criar Novo Orçamento" icon="pi pi-plus" @click="() => { resetForm(); currentStep = '1'; }"
         class="w-full md:w-auto" outlined />
-      <Button label="Ver Lista de Orçamentos" icon="pi pi-list" @click="router.push('/orcamentos')"
+      <Button label="Ver Listaa de Orçamentos" icon="pi pi-list" @click="router.push('/orcamentos')"
         class="w-full md:w-auto" />
     </div>
 
