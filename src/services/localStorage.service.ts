@@ -1,11 +1,10 @@
-import type { BudgetData, Client, Material } from '../interfaces'
+import type { BudgetData, Client } from '../interfaces'
 import type { IStorageService } from './storage.interface'
 import { IdGenerator } from '../utils/idGenerator'
 
 const STORAGE_KEYS = {
   CLIENTS: 'clients',
-  BUDGETS: 'budgets',
-  MATERIALS: 'materials'
+  BUDGETS: 'budgets'
 } as const
 
 export class LocalStorageService implements IStorageService {
@@ -89,38 +88,6 @@ export class LocalStorageService implements IStorageService {
     const budgets = this.getItem<BudgetData>(STORAGE_KEYS.BUDGETS)
     const filteredBudgets = budgets.filter(b => b.id !== budgetId)
     this.setItem(STORAGE_KEYS.BUDGETS, filteredBudgets)
-  }
-
-  // Materiais
-  async saveMaterial(material: Material): Promise<Material> {
-    const materials = this.getItem<Material>(STORAGE_KEYS.MATERIALS)
-    const newMaterial = {
-      ...material,
-      id: IdGenerator.getNextMaterialId(materials)
-    }
-    materials.push(newMaterial)
-    this.setItem(STORAGE_KEYS.MATERIALS, materials)
-    return newMaterial
-  }
-
-  async getMaterials(): Promise<Material[]> {
-    return this.getItem<Material>(STORAGE_KEYS.MATERIALS)
-  }
-
-  async updateMaterial(materialId: number, updates: Partial<Material>): Promise<Material> {
-    const materials = this.getItem<Material>(STORAGE_KEYS.MATERIALS)
-    const index = materials.findIndex(m => m.id === materialId)
-    if (index !== -1) {
-      materials[index] = { ...materials[index], ...updates }
-      this.setItem(STORAGE_KEYS.MATERIALS, materials)
-    }
-    return materials[index]
-  }
-
-  async deleteMaterial(materialId: number): Promise<void> {
-    const materials = this.getItem<Material>(STORAGE_KEYS.MATERIALS)
-    const filteredMaterials = materials.filter(m => m.id !== materialId)
-    this.setItem(STORAGE_KEYS.MATERIALS, filteredMaterials)
   }
 }
 
