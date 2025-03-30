@@ -1,27 +1,31 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import BudgetList from '@/views/BudgetList.vue'
-import NewBudget from '@/views/NewBudget.vue'
-import PreviewBudget from '@/views/PreviewBudget.vue'
+import BudgetList from '../views/BudgetList.vue'
+import BudgetForm from '../views/BudgetForm.vue'
+import PreviewBudget from '../views/PreviewBudget.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     {
+      path: '/',
+      redirect: '/orcamentos'
+    },
+    {
       path: '/orcamentos',
-      name: 'orçamentos',
-      component: BudgetList,
+      name: 'budget-list',
+      component: BudgetList
     },
     {
-      path: '/novo-orcamento',
-      name: 'new-budget',
-      component: NewBudget,
+      path: '/orcamentos/novo',
+      name: 'budget-form',
+      component: BudgetForm
     },
     {
-      path: '/orcamento/:id',
-      name: 'budget',
-      component: PreviewBudget,
+      path: '/orcamentos/:id',
+      name: 'preview-budget',
+      component: PreviewBudget
     }
-  ],
+  ]
 })
 
 export default router
