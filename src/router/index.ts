@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import BudgetList from '../views/BudgetList.vue'
-import BudgetForm from '../views/BudgetForm.vue'
+import NewBudget from '../views/NewBudget.vue'
 import PreviewBudget from '../views/PreviewBudget.vue'
 
 const router = createRouter({
@@ -17,8 +17,8 @@ const router = createRouter({
     },
     {
       path: '/orcamentos/novo',
-      name: 'budget-form',
-      component: BudgetForm
+      name: 'new-budget',
+      component: NewBudget
     },
     {
       path: '/orcamentos/:id',
