@@ -16,12 +16,12 @@ const router = createRouter({
       component: BudgetList
     },
     {
-      path: '/orcamentos/novo',
+      path: '/novo-orcamento',
       name: 'new-budget',
       component: NewBudget
     },
     {
-      path: '/orcamentos/:id',
+      path: '/orcamento/:id',
       name: 'preview-budget',
       component: PreviewBudget
     }
