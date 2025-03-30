@@ -1,12 +1,18 @@
 <template>
   <div class="p-4">
     <div class="flex flex-col border border-surface-200 dark:border-surface-700 rounded">
-      <h1 class="text-center text-2xl font-family text-gray-600/60 dark:text-gray-400 mt-2">Gerar Orçamento</h1>
+      <div class="flex flex-row items-center">
+
+        <Button icon="pi pi-arrow-left" @click="router.push('/orcamentos')" variant="text" class="ml-1" />
+        <h1 class="flex-1 text-center text-2xl font-family text-gray-600/60 dark:text-gray-400 mt-2">Gerar Orçamento
+        </h1>
+      </div>
+
       <Stepper v-model:value="currentStep">
         <StepItem value="1">
           <Step>Informações do Cliente</Step>
           <StepPanel v-slot="{ activateCallback }">
-            <form @submit.prevent="(e) => onClientSubmit(e, activateCallback)" class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2">
               <FloatLabel variant="in">
                 <AutoComplete :loading="loading" v-model="clientName" :suggestions="filteredClients"
                   @complete="searchClients" @item-select="onClientSelect" optionLabel="name" />
@@ -21,39 +27,39 @@
                 <label>Contato (Whatsapp)</label>
               </FloatLabel>
               <div class="py-6">
-                <Button type="submit" label="Próximo" @click="activateCallback('2')" class="w-[210px]"
-                  icon="pi pi-arrow-right" />
+                <Button type="button" label="Próximo"
+                  @click="() => { if (clientName && clientCompany && clientWhatsapp) { activateCallback('2') } }"
+                  class="w-[210px]" icon="pi pi-arrow-right" />
               </div>
-            </form>
+            </div>
           </StepPanel>
         </StepItem>
         <StepItem value="2">
           <Step>Materiais</Step>
           <StepPanel v-slot="{ activateCallback }">
-            <form @submit.prevent="(e) => onMaterialSubmit(e)" class="flex flex-col gap-2 mr-4">
+            <div class="flex flex-col gap-2 mr-4">
               <FloatLabel variant="in">
-                <InputText v-model="formData.product" />
+                <InputText v-model="materialForm.name" />
                 <label>Nome do Produto</label>
               </FloatLabel>
               <FloatLabel variant="in">
-                <InputText v-model="formData.brand" />
+                <InputText v-model="materialForm.brand" />
                 <label>Marca do Produto</label>
               </FloatLabel>
               <FloatLabel variant="in">
-                <InputNumber v-model="formData.measure" inputId="measure" suffix="cm" />
-                <label>Medida(cm)</label>
+                <InputText v-model="materialForm.unit" suffix="cm" />
+                <label>Unidade de Medida</label>
               </FloatLabel>
               <FloatLabel variant="in">
-                <InputNumber v-model="formData.unitPrice" mode="currency" currency="BRL" locale="pt-BR" />
-                <label>Valor Unitário</label>
-              </FloatLabel>
-              <FloatLabel variant="in">
-                <InputText v-model="formData.quantity" type="number" />
+                <InputNumber v-model="materialForm.quantity" inputId="quantity" />
                 <label>Quantidade</label>
               </FloatLabel>
               <FloatLabel variant="in">
-                <InputNumber v-model="formData.totalPrice" mode="currency" currency="BRL" locale="pt-BR"
-                  :minFractionDigits="2" :maxFractionDigits="2" :useGrouping="false" disabled />
+                <InputNumber v-model="materialForm.price" mode="currency" currency="BRL" locale="pt-BR" />
+                <label>Valor Unitário</label>
+              </FloatLabel>
+              <FloatLabel variant="in">
+                <InputNumber v-model="materialForm.total" mode="currency" currency="BRL" locale="pt-BR" disabled />
                 <label>Valor Total do Material</label>
               </FloatLabel>
               <div class="py-2 flex flex-col gap-4">
@@ -61,11 +67,11 @@
                 <Toast />
                 <div class="flex gap-2">
                   <Button type="button" label="Voltar" @click="activateCallback('1')" />
-                  <Button type="submit" label="Adicionar Material" />
+                  <Button type="button" label="Adicionar Material" @click="handleAddMaterial" />
                   <Button type="button" label="Proximo" @click="() => goToNextStep(activateCallback)" />
                 </div>
               </div>
-            </form>
+            </div>
           </StepPanel>
         </StepItem>
         <StepItem value="3">
@@ -100,7 +106,8 @@
               </Column>
               <Column class="!text-center" header="Ações">
                 <template #body="slotProps">
-                  <Button icon="pi pi-trash" severity="danger" text @click="handleDeleteMaterial(slotProps.data.id)" />
+                  <Button icon="pi pi-trash" severity="danger" text
+                    @click="handleDeleteMaterial(slotProps.data.id.toString())" />
                 </template>
               </Column>
             </DataTable>
@@ -161,6 +168,8 @@
 import { ref, watchEffect, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storageService } from '../services/localStorage.service'
+import { useBudgetStore } from '../stores/budgetStore'
+import { IdGenerator } from '../utils/idGenerator'
 import type { BudgetData, Client, Material } from '../interfaces'
 import type { AutoCompleteOptionSelectEvent } from 'primevue/autocomplete'
 
@@ -179,7 +188,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
 import InputNumber from 'primevue/inputnumber'
 import Dialog from 'primevue/dialog'
-import { useBudgetStore } from '../stores/budgetStore'
+
 
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
@@ -188,7 +197,6 @@ const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
 const budgetStore = useBudgetStore()
-
 
 const clientName = ref('')
 const clientCompany = ref('')
@@ -200,23 +208,14 @@ const isDuplicating = ref(false)
 const currentStep = ref('1')
 const nextBudgetId = ref('0000')
 
-
-interface MaterialFormData {
-  product: string
-  brand: string
-  measure: number
-  unitPrice: number
-  quantity: string
-  totalPrice: number
-}
-
-const formData = ref<MaterialFormData>({
-  product: '',
+// Formulário de material usando a interface Material
+const materialForm = ref<Omit<Material, 'id'>>({
+  name: '',
   brand: '',
-  measure: 0,
-  unitPrice: 0,
-  quantity: '',
-  totalPrice: 0
+  quantity: 0,
+  unit: 'cm',
+  price: 0,
+  total: 0
 })
 
 const budget = ref<BudgetData>({
@@ -234,25 +233,12 @@ const budget = ref<BudgetData>({
   updatedAt: new Date().toISOString()
 })
 
-
 const getNextBudgetId = async () => {
   const existingBudgets = await storageService.getBudgets()
   const maxId = Math.max(...existingBudgets.map(b => b.id), 0)
   nextBudgetId.value = (maxId + 1).toString().padStart(4, '0')
 }
 
-onMounted(getNextBudgetId)
-
-watchEffect(() => {
-  const unitPrice = formData.value.unitPrice
-  const quantity = Number(formData.value.quantity)
-
-  if (!isNaN(quantity) && quantity > 0) {
-    formData.value.totalPrice = unitPrice * quantity
-  } else {
-    formData.value.totalPrice = 0
-  }
-})
 
 const searchClients = async (event: { query: string }) => {
   if (event.query.length > 0) {
@@ -273,7 +259,17 @@ const onClientSelect = (event: AutoCompleteOptionSelectEvent) => {
   filteredClients.value = []
 }
 
-const handleAddMaterial = async (formData: MaterialFormData) => {
+const handleAddMaterial = async () => {
+  if (!materialForm.value.name || !materialForm.value.brand || !materialForm.value.quantity || !materialForm.value.price) {
+    toast.add({
+      severity: 'error',
+      summary: 'Erro',
+      detail: 'Preencha todos os campos do material',
+      life: 3000
+    })
+    return
+  }
+
   confirm.require({
     message: 'Deseja adicionar o material?',
     header: 'Confirmar',
@@ -283,26 +279,22 @@ const handleAddMaterial = async (formData: MaterialFormData) => {
     accept: async () => {
       try {
         const material: Material = {
-          id: 0,
-          name: formData.product,
-          brand: formData.brand,
-          quantity: Number(formData.quantity),
-          unit: 'cm',
-          price: formData.unitPrice,
-          total: formData.totalPrice
+          id: IdGenerator.getNextMaterialId(budget.value.materials),
+          ...materialForm.value
         }
 
-        await budgetStore.addMaterial(material)
         budget.value.materials.push(material)
-        calculateMaterialTotal(material)
+        budget.value.total = budget.value.materials.reduce((sum, m) => sum + m.total, 0)
 
         // Limpa o formulário
-        formData.product = ''
-        formData.brand = ''
-        formData.measure = 0
-        formData.unitPrice = 0
-        formData.quantity = ''
-        formData.totalPrice = 0
+        materialForm.value = {
+          name: '',
+          brand: '',
+          quantity: 0,
+          unit: 'cm',
+          price: 0,
+          total: 0
+        }
 
         toast.add({
           severity: 'success',
@@ -323,11 +315,6 @@ const handleAddMaterial = async (formData: MaterialFormData) => {
   })
 }
 
-const calculateMaterialTotal = (material: Material) => {
-  material.total = material.quantity * material.price
-  budget.value.total = budget.value.materials.reduce((sum, m) => sum + m.total, 0)
-}
-
 const handleDeleteMaterial = (id: string) => {
   confirm.require({
     message: 'Tem certeza que deseja excluir este material?',
@@ -343,9 +330,24 @@ const handleDeleteMaterial = (id: string) => {
     },
     accept: async () => {
       try {
+        const materialId = parseInt(id)
+        budget.value.materials = budget.value.materials.filter(m => m.id !== materialId)
+        budget.value.total = budget.value.materials.reduce((sum, m) => sum + m.total, 0)
         await budgetStore.deleteMaterial(id)
+        toast.add({
+          severity: 'success',
+          summary: 'Sucesso',
+          detail: 'Material excluído com sucesso!',
+          life: 3000
+        })
       } catch (error) {
         console.error('Erro ao excluir material:', error)
+        toast.add({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'Erro ao excluir material. Tente novamente.',
+          life: 3000
+        })
       }
     }
   })
@@ -497,20 +499,6 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
-const onClientSubmit = (event: Event, callback: (step: string) => void) => {
-  event.preventDefault()
-  if (clientName.value && clientCompany.value && clientWhatsapp.value) {
-    callback('2')
-  }
-}
-
-const onMaterialSubmit = (event: Event) => {
-  event.preventDefault()
-  if (formData.value.product && formData.value.brand && formData.value.measure && formData.value.unitPrice > 0 && formData.value.quantity) {
-    handleAddMaterial(formData.value as MaterialFormData)
-  }
-}
-
 const goToNextStep = (activateCallback: (step: string) => void) => {
   if (budget.value.materials.length === 0) {
     toast.add({
@@ -528,6 +516,15 @@ const goToStep = (activateCallback: (step: string) => void, step: string) => {
   currentStep.value = step
   activateCallback(step)
 }
+
+onMounted(getNextBudgetId)
+
+watchEffect(() => {
+  if (materialForm.value.quantity && materialForm.value.price) {
+    materialForm.value.total = materialForm.value.quantity * materialForm.value.price
+  }
+})
+
 
 </script>
 
