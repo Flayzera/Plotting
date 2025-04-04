@@ -56,7 +56,7 @@
               <Column field="quantity" header="Quantidade"></Column>
               <Column field="unit" header="Unidade">
                 <template #body="{ data }">
-                  {{ data.unit }}cm
+                  {{ data.unit }}
                 </template>
               </Column>
               <Column field="price" header="Valor Unitário">
@@ -99,13 +99,18 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
+
 import { ref, onMounted, createApp } from 'vue'
 import { useRouter } from 'vue-router'
+
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+
 import { useBudgetStore } from '../stores/budgetStore'
 import type { BudgetData, BudgetStatus } from '../interfaces'
+
 import { pdfService } from '../services/pdf.service'
+
 import PrintLayout from '../components/PrintLayout.vue'
 
 const router = useRouter()
@@ -119,7 +124,6 @@ const statusOptions = ref([
   { name: 'Concluído', code: 'Concluido' as BudgetStatus },
   { name: 'Rejeitado', code: 'Rejeitado' as BudgetStatus },
 ])
-
 
 const navigateToNew = () => {
   router.push('/novo-orcamento')

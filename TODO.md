@@ -1,14 +1,14 @@
-## Criar tabelas dependendo do status
-
 ## Procurar outras opçoes para melhorar o layout em relação ao status
 
-## Colocar total de orçamentos na linha da paginação na versao mobile
+## Inciar configuração do backend, projetar models e funçoes para usar no supabase (SE NECESSÁRIO)
 
-## Retornar feedback ao gerar orçamento
-
-## Inciar configuração do backend, projetar models e funçoes para usar no appwrite
+## Criar tabelas dependendo do status // DONE
 
 ### Tasks DONE
+
+## Retornar feedback ao gerar orçamento // DONE
+
+## Criar nova view com o template no jeito de baixar o pdf // DONE
 
 ## Adicionar orçamento no inicio da lista // DONE
 
