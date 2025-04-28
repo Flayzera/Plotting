@@ -2,7 +2,6 @@
   <div class="p-4">
     <div class="flex flex-col border border-surface-200 dark:border-surface-700 rounded">
       <div class="flex flex-row items-center">
-
         <Button icon="pi pi-arrow-left" @click="router.push('/orcamentos')" variant="text" class="ml-1" />
         <h1 class="flex-1 text-center text-2xl font-family text-gray-600/60 dark:text-gray-400 mt-2">Gerar Orçamento
         </h1>
@@ -34,6 +33,7 @@
             </div>
           </StepPanel>
         </StepItem>
+
         <StepItem value="2">
           <Step>Materiais</Step>
           <StepPanel v-slot="{ activateCallback }">
@@ -74,6 +74,7 @@
             </div>
           </StepPanel>
         </StepItem>
+
         <StepItem value="3">
           <Step>Lista de Materiais do orçamento</Step>
           <StepPanel v-slot="{ activateCallback }">
@@ -122,7 +123,6 @@
     </div>
   </div>
 
-  <!-- Ajustar o Dialog para ser responsivo -->
   <Dialog v-model:visible="showSuccessDialog" :modal="true" class="w-full md:w-[90%] lg:w-[70%] xl:w-[50%] mx-auto">
     <template #header>
       <div class="flex items-center gap-2">
@@ -130,33 +130,40 @@
         <span class="font-bold text-xl md:text-lg">Orçamento Gerado com Sucesso!</span>
       </div>
     </template>
+
     <div class="flex flex-col gap-4 p-4 md:p-6">
       <div class="flex flex-col gap-3">
         <div class="text-base md:text-lg">
           <span class="font-semibold">Número:</span>
           <span class="ml-2">#{{ budget.id || nextBudgetId }}</span>
         </div>
+
         <div class="text-base md:text-lg">
           <span class="font-semibold">Cliente:</span>
           <span class="ml-2">{{ budget.client.name }}</span>
         </div>
+
         <div class="text-base md:text-lg">
           <span class="font-semibold">Empresa:</span>
           <span class="ml-2">{{ budget.client.company }}</span>
         </div>
+
         <div class="text-base md:text-lg">
           <span class="font-semibold">Total de Materiais:</span>
           <span class="ml-2">{{ budget.materials.length }}</span>
         </div>
+
         <div class="text-base md:text-lg">
           <span class="font-semibold">Valor Total:</span>
           <span class="ml-2 text-green-600 font-bold">{{ formatCurrency(budget.total) }}</span>
         </div>
       </div>
     </div>
+
     <div class="flex flex-col md:flex-row justify-end items-center text-center self-center gap-2 p-4 md:p-6">
       <Button label="Criar Novo Orçamento" icon="pi pi-plus" @click="() => { resetForm(); currentStep = '1'; }"
         class="w-full md:w-auto" outlined />
+
       <Button label="Ver Lista de Orçamentos" icon="pi pi-list" @click="router.push('/orcamentos')"
         class="w-full md:w-auto" />
     </div>
@@ -524,8 +531,6 @@ watchEffect(() => {
     materialForm.value.total = materialForm.value.quantity * materialForm.value.price
   }
 })
-
-
 </script>
 
 <style scoped>

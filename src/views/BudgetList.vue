@@ -8,10 +8,10 @@
     </div>
 
     <div v-for="status in statusOptions" :key="status.code" class="mb-8">
-
       <div class="text-base mb-4 uppercase">
         <Tag :value="status.name" :severity="getStatusSeverity(status.code)" />
       </div>
+
       <DataTable :value="getBudgetsByStatus(status.code)" paginator :rows="5" :rowsPerPageOptions="[5, 10, 20, 50]"
         currentPageReportTemplate="{first} to {last} of {totalRecords}"
         paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink">
@@ -21,17 +21,21 @@
             #{{ data.id.toString().padStart(4, '0') }}
           </template>
         </Column>
+
         <Column field="client.name" header="Cliente" bodyStyle="text-align: center" />
+
         <Column field="createdAt" header="Data Criação" bodyStyle="text-align: center">
           <template #body="{ data }">
             {{ new Date(data.createdAt).toLocaleDateString('pt-BR') }}
           </template>
         </Column>
+
         <Column field="total" header="Valor Total" bodyStyle="text-align: center">
           <template #body="{ data }">
             {{ formatCurrency(data.total) }}
           </template>
         </Column>
+
         <Column header="Ações" bodyStyle="text-align: center">
           <template #body="{ data }">
             <Button icon="pi pi-eye" severity="info" tooltip="Ver Orçamento" rounded text
@@ -41,12 +45,14 @@
               text />
           </template>
         </Column>
+
         <Column field="status" header="Status" bodyStyle="text-align: center">
           <template #body="{ data }">
             <Select v-model="data.status" :options="statusOptions" optionLabel="name" optionValue="code"
               @change="handleStatusChange(data)" />
           </template>
         </Column>
+
         <template #expansion="slotProps">
           <div class="p-3">
             <h5 class="text-lg font-semibold mb-3">Detalhes do Orçamento</h5>
@@ -72,11 +78,13 @@
             </DataTable>
           </div>
         </template>
+
         <template #footer>
           <div class="flex justify-end font-bold">
             <span>Total: {{ formatCurrency(getTotalValueByStatus(status.code)) }}</span>
           </div>
         </template>
+
         <template #empty>
           <div class="flex justify-center my-5 uppercase font-xl opacity-50">
             <h1 class="text-primary-default">Nenhum orçamento {{ status.name }} encontrado</h1>
@@ -85,6 +93,7 @@
       </DataTable>
     </div>
   </div>
+
 
   <ConfirmDialog />
   <Toast />

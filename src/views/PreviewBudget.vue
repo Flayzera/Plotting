@@ -12,7 +12,6 @@
       </div>
 
       <div v-else-if="budget" class="p-4">
-        <!-- Informações do Cliente -->
         <div class="mb-6">
           <h2 class="text-xl font-semibold mb-4">Informações do Cliente</h2>
           <div class="flex flex-wrap">
@@ -20,14 +19,17 @@
               <span class="text-gray-600 dark:text-gray-400">Nome:</span>
               <span class="font-medium">{{ budget.client.name }}</span>
             </div>
+
             <div class="flex flex-col gap-2 w-full md:w-1/2 md:pl-2 mb-4">
               <span class="text-gray-600 dark:text-gray-400">Empresa:</span>
               <span class="font-medium">{{ budget.client.company }}</span>
             </div>
+
             <div class="flex flex-col gap-2 w-full md:w-1/2 md:pr-2 mb-4">
               <span class="text-gray-600 dark:text-gray-400">WhatsApp:</span>
               <span class="font-medium">{{ budget.client.whatsapp }}</span>
             </div>
+
             <div class="flex flex-col gap-2 w-full md:w-1/2 md:pl-2 mb-4">
               <span class="text-gray-600 dark:text-gray-400">Status:</span>
               <div class="w-fit">
@@ -37,23 +39,27 @@
           </div>
         </div>
 
-        <!-- Lista de Materiais -->
         <div class="mb-6">
           <h2 class="text-xl font-semibold mb-4">Materiais</h2>
           <DataTable :value="budget.materials" class="p-datatable-sm">
             <Column class="text-center" field="name" header="Produto"></Column>
+
             <Column class="text-center" field="brand" header="Marca"></Column>
+
             <Column class="text-center" field="quantity" header="Quantidade"></Column>
+
             <Column class="text-center" field="unit" header="Unidade">
               <template #body="{ data }">
                 {{ data.unit }}cm
               </template>
             </Column>
+
             <Column class="text-center" field="price" header="Valor Unitário">
               <template #body="{ data }">
                 {{ formatCurrency(data.price) }}
               </template>
             </Column>
+
             <Column class="text-center" field="total" header="Total">
               <template #body="{ data }">
                 {{ formatCurrency(data.total) }}
@@ -62,7 +68,6 @@
           </DataTable>
         </div>
 
-        <!-- Informações Adicionais -->
         <div
           class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 bg-surface-100 dark:bg-surface-800 rounded">
           <div class="flex flex-col gap-2">
@@ -94,7 +99,6 @@
     </div>
   </div>
 
-  <!-- Dialog de Impressão -->
   <Dialog v-model:visible="showPrintDialog" modal :style="{ width: '80vw' }">
     <template #header>
       <div class="flex items-center gap-2">
@@ -226,7 +230,6 @@ onMounted(async () => {
   color: black;
   padding: 0;
   width: 210mm;
-  /* Largura A4 */
   margin: 0 auto;
 }
 
