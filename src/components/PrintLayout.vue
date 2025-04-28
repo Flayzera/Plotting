@@ -1,17 +1,16 @@
 <template>
   <div class="print-layout" ref="printRef">
-    <!-- Cabeçalho -->
     <div class="header">
       <div>
         <img src="../assets/logo-colorido.png" alt="Logo" class="logo" crossorigin="anonymous" />
       </div>
+
       <div class="header-right">
         <h2 class="title">ORÇAMENTO</h2>
         <p class="subtitle">plotting.com.br</p>
       </div>
     </div>
 
-    <!-- Informações do Orçamento -->
     <div class="info-section">
       <div class="info-container">
         <div class="info-left">
@@ -19,6 +18,7 @@
           <p class="bold">{{ budget.client.name }}</p>
           <p class="bold">{{ budget.client.company }}</p>
         </div>
+
         <div class="info-right">
           <p>Proposta: #{{ formatService.id(budget.id) }}</p>
           <p>Plotting Soluções Visuais LTDA</p>
@@ -28,7 +28,6 @@
       </div>
     </div>
 
-    <!-- Tabela de Materiais -->
     <div class="table-header">
       <table class="table-container">
         <thead>
@@ -39,6 +38,7 @@
             <th>Total</th>
           </tr>
         </thead>
+
         <tbody>
           <tr v-for="material in budget.materials" :key="material.id">
             <td>{{ material.name }}</td>
@@ -50,11 +50,11 @@
       </table>
     </div>
 
-    <!-- Rodapé -->
     <div class="footer">
       <div class="footer-left">
         <p class="footer-text">Agradecemos o contato.</p>
       </div>
+
       <div class="footer-right">
         <p>Valor do orçamento • {{ formatService.currency(budget.total) }}</p>
         <p>Descontos • R$ 0,00</p>
@@ -62,7 +62,6 @@
       </div>
     </div>
 
-    <!-- Assinatura -->
     <div class="signature">
       <div class="signature-line">
         <p>Tercio Cipriano Varão</p>

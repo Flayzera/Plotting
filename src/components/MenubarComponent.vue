@@ -4,18 +4,16 @@
       <template #start>
         <img src="../assets/logo-colorido.png" alt="logo" class="block dark:hidden h-5 w-20">
         <img src="../assets/logo-dark.png" alt="logo" class="hidden dark:block h-5 w-20">
-
       </template>
-
     </Menubar>
   </div>
 </template>
+
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import Menubar from 'primevue/menubar'
-
-
 import { ref } from 'vue'
+
+import Menubar from 'primevue/menubar'
 
 const router = useRouter()
 
@@ -34,6 +32,7 @@ const items = ref([
   }
 ]);
 </script>
+
 <style scoped>
 :deep(.p-menubar-button) {
   order: -1 !important;

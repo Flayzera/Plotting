@@ -7,6 +7,7 @@ import { storageService } from '../services/storage.config'
 
 export const useBudgetStore = defineStore('budget', () => {
   const budgets = ref<BudgetData[]>([])
+
   const currentBudget = ref<BudgetData>({
     id: 0,
     status: 'Pendente',
