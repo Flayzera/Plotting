@@ -2,18 +2,18 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { LoginFormData } from '../validations/loginSchema'
 import type { User } from '../interfaces'
-
+import bcrypt from 'bcryptjs'
 
 export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
   const user = ref<User | null>(null)
   const sessionTimeout = 1000 * 60 * 60 * 24 // 24 horas
 
-  const login = (credentials: LoginFormData) => {
+  const login = async (credentials: LoginFormData) => {
     const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const foundUser = users.find((u: LoginFormData) => u.email === credentials.email && u.password === credentials.password)
+    const foundUser = users.find((u: LoginFormData) => u.email === credentials.email)
 
-    if (foundUser) {
+    if (foundUser && await bcrypt.compare(credentials.password, foundUser.password)) {
       isAuthenticated.value = true
       user.value = {
         email: foundUser.email,
@@ -37,7 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('session')
   }
 
-  const register = (credentials: LoginFormData) => {
+  const register = async (credentials: LoginFormData) => {
     const users = JSON.parse(localStorage.getItem('users') || '[]')
     const userExists = users.some((u: LoginFormData) => u.email === credentials.email)
 
@@ -45,7 +45,14 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
 
-    users.push(credentials)
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(credentials.password, 10)
+    const newUser = {
+      ...credentials,
+      password: hashedPassword
+    }
+
+    users.push(newUser)
     localStorage.setItem('users', JSON.stringify(users))
     return true
   }
