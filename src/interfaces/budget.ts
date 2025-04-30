@@ -1,5 +1,3 @@
-export type BudgetStatus = 'Pendente' | 'Aprovado' | 'Rejeitado' | 'Concluido'
-
 export interface Client {
   id: number
   name: string
@@ -17,6 +15,8 @@ export interface Material {
   total: number
 }
 
+export type BudgetStatus = 'pending' | 'approved' | 'rejected'
+
 export interface BudgetData {
   id: number
   client: Client
@@ -26,12 +26,3 @@ export interface BudgetData {
   createdAt: string
   updatedAt: string
 }
-
-
-export interface User {
-  email: string
-  lastLogin: string
-}
-
-
-
