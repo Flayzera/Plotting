@@ -25,7 +25,7 @@
           <small class="text-red-500 text-sm mt-1 block" v-if="errors.password">{{ errors.password }}</small>
         </div>
 
-        <div class="flex flex-col gap-4 mt-8">
+        <div class="flex flex-row gap-4 mt-8">
           <Button label="Entrar" class="p-button-primary w-full p-3 text-lg" @click="handleLogin" />
           <Button label="Registrar" class="p-button-secondary w-full p-3 text-lg" @click="handleRegister" />
         </div>
