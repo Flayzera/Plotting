@@ -1,6 +1,5 @@
 <template>
   <div class="p-3">
-    <Toast />
     <Menubar :model="items" class="mb-4">
       <template #start>
         <img src="../assets/logo-colorido.png" alt="logo" class="hidden lg:block dark:hidden h-5 w-20">
@@ -19,7 +18,6 @@ import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
-import Toast from 'primevue/toast'
 
 import Menubar from 'primevue/menubar'
 import PButton from 'primevue/button'
@@ -39,15 +37,25 @@ const items = ref([
   }
 ])
 
-const handleLogout = () => {
-  authStore.logout()
-  toast.add({
-    severity: 'info',
-    summary: 'Logout',
-    detail: 'Você foi desconectado com sucesso',
-    life: 3000
-  })
-  router.push('/login')
+const handleLogout = async () => {
+  try {
+    authStore.logout()
+    await router.push('/login')
+    toast.add({
+      severity: 'info',
+      summary: 'Logout',
+      detail: 'Você foi desconectado com sucesso',
+      life: 3000
+    })
+  } catch (error) {
+    console.error('Erro ao fazer logout:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Erro',
+      detail: 'Ocorreu um erro ao fazer logout. Tente novamente.',
+      life: 3000
+    })
+  }
 }
 </script>
 

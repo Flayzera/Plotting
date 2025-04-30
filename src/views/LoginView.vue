@@ -80,45 +80,65 @@ const handleValidation = (isRegistering = false) => {
 }
 
 const handleLogin = async () => {
-  clearErrors()
-  const success = authStore.login(formData)
+  try {
+    clearErrors()
+    const success = await authStore.login(formData)
 
-  if (success) {
-    toast.add({
-      severity: 'success',
-      summary: 'Sucesso',
-      detail: 'Login realizado com sucesso',
-      life: 3000
-    })
-    router.push('/orcamentos')
-  } else {
+    if (success) {
+      toast.add({
+        severity: 'success',
+        summary: 'Sucesso',
+        detail: 'Login realizado com sucesso',
+        life: 3000
+      })
+      router.push('/orcamentos')
+    } else {
+      toast.add({
+        severity: 'error',
+        summary: 'Erro',
+        detail: 'Email ou senha inválidos',
+        life: 3000
+      })
+    }
+  } catch (error) {
+    console.error('Erro no login:', error)
     toast.add({
       severity: 'error',
       summary: 'Erro',
-      detail: 'Email ou senha inválidos',
+      detail: 'Ocorreu um erro ao fazer login. Tente novamente.',
       life: 3000
     })
   }
 }
 
 const handleRegister = async () => {
-  if (!handleValidation(true)) return
+  try {
+    if (!handleValidation(true)) return
 
-  const success = authStore.register(formData)
-  if (success) {
-    toast.add({
-      severity: 'success',
-      summary: 'Sucesso',
-      detail: 'Conta criada com sucesso! Agora você pode fazer login.',
-      life: 3000
-    })
-    formData.email = ''
-    formData.password = ''
-  } else {
+    const success = await authStore.register(formData)
+    if (success) {
+      toast.add({
+        severity: 'success',
+        summary: 'Sucesso',
+        detail: 'Conta criada com sucesso! Agora você pode fazer login.',
+        life: 3000
+      })
+      formData.email = ''
+      formData.password = ''
+    } else {
+      toast.add({
+        severity: 'error',
+        summary: 'Erro',
+        detail: 'Este email já está cadastrado',
+        life: 3000
+      })
+    }
+  } catch (error) {
+    console.error('Erro no registro:', error)
     toast.add({
       severity: 'error',
       summary: 'Erro',
-      detail: 'Este email já está cadastrado',
+      detail: 'Ocorreu um erro ao criar a conta. Tente novamente.',
       life: 3000
     })
   }
