@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 
 import type { BudgetData, Material } from '../interfaces'
 import { budgetRules } from '../validations/budgetRules'
-import { storageService } from '../services/storage.config'
+import { storageService } from '../services/storage'
 
 export const useBudgetStore = defineStore('budget', () => {
   const budgets = ref<BudgetData[]>([])
