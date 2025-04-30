@@ -1,4 +1,4 @@
-import type { BudgetData, Client, Material } from '../interfaces'
+import type { BudgetData, Client } from '.'
 
 export interface IStorageService {
   // Clientes
@@ -14,10 +14,4 @@ export interface IStorageService {
   getBudgets(): Promise<BudgetData[]>
   updateBudget(budget: BudgetData): Promise<BudgetData>
   deleteBudget(budgetId: number): Promise<void>
-
-  // Materiais
-  saveMaterial(material: Material): Promise<Material>
-  getMaterials(): Promise<Material[]>
-  updateMaterial(materialId: number, updates: Partial<Material>): Promise<Material>
-  deleteMaterial(materialId: number): Promise<void>
 }

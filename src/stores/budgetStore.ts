@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+
 import type { BudgetData, Material } from '../interfaces'
 import { budgetRules } from '../validations/budgetRules'
-import { storageService } from '../services/storage.config'
+import { storageService } from '../services/storage'
 
 export const useBudgetStore = defineStore('budget', () => {
   const budgets = ref<BudgetData[]>([])
+
   const currentBudget = ref<BudgetData>({
     id: 0,
     status: 'Pendente',
@@ -47,6 +49,7 @@ export const useBudgetStore = defineStore('budget', () => {
   const updateBudget = async (id: string, updates: Partial<BudgetData>) => {
     try {
       const budgetToUpdate = budgets.value.find(b => b.id === parseInt(id))
+
       if (!budgetToUpdate) {
         throw new Error('Orçamento não encontrado')
       }
@@ -95,8 +98,7 @@ export const useBudgetStore = defineStore('budget', () => {
 
   const addMaterial = async (material: Material) => {
     try {
-      const newMaterial = await storageService.saveMaterial(material)
-      currentBudget.value.materials.push(newMaterial)
+      currentBudget.value.materials.push(material)
     } catch (error) {
       console.error('Erro ao adicionar material:', error)
       throw error
@@ -105,12 +107,11 @@ export const useBudgetStore = defineStore('budget', () => {
 
   const updateMaterial = async (id: string, updates: Partial<Material>) => {
     try {
-      const updatedMaterial = await storageService.updateMaterial(parseInt(id), updates)
       const index = currentBudget.value.materials.findIndex(m => m.id === parseInt(id))
       if (index !== -1) {
-        currentBudget.value.materials[index] = updatedMaterial
+        currentBudget.value.materials[index] = { ...currentBudget.value.materials[index], ...updates }
       }
-      return updatedMaterial
+      return currentBudget.value.materials[index]
     } catch (error) {
       console.error('Erro ao atualizar material:', error)
       throw error
@@ -119,7 +120,7 @@ export const useBudgetStore = defineStore('budget', () => {
 
   const deleteMaterial = async (id: string) => {
     try {
-      await storageService.deleteMaterial(parseInt(id))
+      currentBudget.value.materials = currentBudget.value.materials.filter(m => m.id !== parseInt(id))
     } catch (error) {
       console.error('Erro ao deletar material:', error)
       throw error
@@ -153,6 +154,7 @@ export const useBudgetStore = defineStore('budget', () => {
     deleteBudget,
     loadBudgets,
     resetCurrentBudget,
+
     addMaterial,
     updateMaterial,
     deleteMaterial
