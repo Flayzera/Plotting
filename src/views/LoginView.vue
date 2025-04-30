@@ -1,5 +1,6 @@
 <template>
   <div class="flex justify-center items-center min-h-screen bg-surface-ground">
+    <Toast />
     <div class="w-full max-w-[400px] p-8">
       <div class="bg-surface-card p-8 rounded-xl shadow-sm">
         <div class="logo-container flex justify-center items-center mb-8">
@@ -39,6 +40,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useAuthStore } from '../stores/auth'
 import { loginSchema, type LoginFormData } from '../validations/loginSchema'
+import Toast from 'primevue/toast'
 
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'

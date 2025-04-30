@@ -1,5 +1,6 @@
 <template>
   <div class="p-3">
+    <Toast />
     <Menubar :model="items" class="mb-4">
       <template #start>
         <img src="../assets/logo-colorido.png" alt="logo" class="hidden lg:block dark:hidden h-5 w-20">
@@ -18,6 +19,7 @@ import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'primevue/usetoast'
+import Toast from 'primevue/toast'
 
 import Menubar from 'primevue/menubar'
 import PButton from 'primevue/button'
