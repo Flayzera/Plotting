@@ -1,9 +1,13 @@
 <template>
   <div class="p-3">
-    <Menubar :model="items">
+    <Menubar :model="items" class="mb-4">
       <template #start>
-        <img src="../assets/logo-colorido.png" alt="logo" class="block dark:hidden h-5 w-20">
-        <img src="../assets/logo-dark.png" alt="logo" class="hidden dark:block h-5 w-20">
+        <img src="../assets/logo-colorido.png" alt="logo" class="hidden lg:block dark:hidden h-5 w-20">
+        <img src="../assets/logo-dark.png" alt="logo" class="hidden lg:dark:block h-5 w-20">
+      </template>
+      <template #end>
+        <PButton v-if="authStore.isAuthenticated" icon="pi pi-sign-out" label="Sair" class="p-button-danger"
+          @click="handleLogout" />
       </template>
     </Menubar>
   </div>
@@ -12,25 +16,37 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { useToast } from 'primevue/usetoast'
 
 import Menubar from 'primevue/menubar'
+import PButton from 'primevue/button'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const toast = useToast()
 
 const items = ref([
   {
     label: 'Orçamentos',
-    command: () => {
-      router.push('/orcamentos')
-    }
+    command: () => router.push('/orcamentos')
   },
   {
     label: 'Novo Orçamento',
-    command: () => {
-      router.push('/novo-orcamento')
-    }
+    command: () => router.push('/novo-orcamento')
   }
-]);
+])
+
+const handleLogout = () => {
+  authStore.logout()
+  toast.add({
+    severity: 'info',
+    summary: 'Logout',
+    detail: 'Você foi desconectado com sucesso',
+    life: 3000
+  })
+  router.push('/login')
+}
 </script>
 
 <style scoped>
