@@ -1,5 +1,5 @@
 import type { BudgetData, Client } from '../interfaces'
-import type { IStorageService } from './storage.interface'
+import type { IStorageService } from '../interfaces/storage'
 import { IdGenerator } from '../utils/idGenerator'
 
 const STORAGE_KEYS = {

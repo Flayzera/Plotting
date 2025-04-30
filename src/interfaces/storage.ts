@@ -1,4 +1,4 @@
-import type { BudgetData, Client } from '../interfaces'
+import type { BudgetData, Client } from '.'
 
 export interface IStorageService {
   // Clientes
