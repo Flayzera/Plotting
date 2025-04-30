@@ -73,8 +73,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import type { PrintLayoutProps, PrintLayoutExpose } from '../interfaces/print.interface'
-import { formatService } from '../services/format.service'
+import type { PrintLayoutProps, PrintLayoutExpose } from '../interfaces/print'
+import { formatService } from '../services/format'
 
 defineProps<PrintLayoutProps>()
 

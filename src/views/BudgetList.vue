@@ -118,7 +118,7 @@ import { useToast } from 'primevue/usetoast'
 import { useBudgetStore } from '../stores/budgetStore'
 import type { BudgetData, BudgetStatus } from '../interfaces'
 
-import { pdfService } from '../services/pdf.service'
+import { pdfService } from '../services/pdf'
 
 import PrintLayout from '../components/PrintLayout.vue'
 

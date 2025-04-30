@@ -174,7 +174,7 @@
 <script setup lang="ts">
 import { ref, watchEffect, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { storageService } from '../services/localStorage.service'
+import { storageService } from '../services/localStorage'
 import { useBudgetStore } from '../stores/budgetStore'
 import { IdGenerator } from '../utils/idGenerator'
 import type { BudgetData, Client, Material } from '../interfaces'

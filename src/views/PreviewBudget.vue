@@ -124,10 +124,10 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
-import { storageService } from '../services/localStorage.service'
-import { pdfService } from '../services/pdf.service'
+import { storageService } from '../services/localStorage'
+import { pdfService } from '../services/pdf'
 import type { BudgetData, BudgetStatus } from '../interfaces'
-import type { PrintLayoutInstance } from '../interfaces/print.interface'
+import type { PrintLayoutInstance } from '../interfaces/print'
 import { useToast } from 'primevue/usetoast'
 
 import PrintLayout from '../components/PrintLayout.vue'
