@@ -1,84 +1,59 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { LoginFormData } from '../validations/loginSchema'
+import { auth } from '../services/api'
 import type { User } from '../interfaces'
-import bcrypt from 'bcryptjs'
 
-export const useAuthStore = defineStore('auth', () => {
-  const isAuthenticated = ref(false)
-  const user = ref<User | null>(null)
-  const sessionTimeout = 1000 * 60 * 60 * 24 // 24 horas
+interface AuthState {
+  user: User | null
+  token: string | null
+}
 
-  const login = async (credentials: LoginFormData) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const foundUser = users.find((u: LoginFormData) => u.email === credentials.email)
+export const useAuthStore = defineStore('auth', {
+  state: (): AuthState => ({
+    user: JSON.parse(localStorage.getItem('user') || 'null'),
+    token: localStorage.getItem('token'),
+  }),
 
-    if (foundUser && await bcrypt.compare(credentials.password, foundUser.password)) {
-      isAuthenticated.value = true
-      user.value = {
-        email: foundUser.email,
-        lastLogin: new Date().toISOString()
+  getters: {
+    isAuthenticated: (state) => !!state.token,
+  },
+
+  actions: {
+    async register(email: string, password: string) {
+      try {
+        const response = await auth.register(email, password)
+        this.setAuth(response.user, response.token)
+        return response
+      } catch (error) {
+        console.error('Registration error:', error)
+        throw error
       }
+    },
 
-      // Salva a sessão com timestamp
-      const session = {
-        user: user.value,
-        expiresAt: new Date(Date.now() + sessionTimeout).toISOString()
+    async login(email: string, password: string) {
+      try {
+        const response = await auth.login(email, password)
+        this.setAuth(response.user, response.token)
+        localStorage.setItem('token', response.token)
+        localStorage.setItem('user', JSON.stringify(response.user))
+        return response
+      } catch (error) {
+        console.error('Login error:', error)
+        throw error
       }
-      localStorage.setItem('session', JSON.stringify(session))
-      return true
-    }
-    return false
-  }
+    },
 
-  const logout = () => {
-    isAuthenticated.value = false
-    user.value = null
-    localStorage.removeItem('session')
-  }
+    logout() {
+      this.user = null
+      this.token = null
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
+    },
 
-  const register = async (credentials: LoginFormData) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const userExists = users.some((u: LoginFormData) => u.email === credentials.email)
-
-    if (userExists) {
-      return false
-    }
-
-    // Hash the password before storing
-    const hashedPassword = await bcrypt.hash(credentials.password, 10)
-    const newUser = {
-      ...credentials,
-      password: hashedPassword
-    }
-
-    users.push(newUser)
-    localStorage.setItem('users', JSON.stringify(users))
-    return true
-  }
-
-  const checkAuth = () => {
-    const session = localStorage.getItem('session')
-    if (session) {
-      const { user: sessionUser, expiresAt } = JSON.parse(session)
-
-      // Verifica se a sessão expirou
-      if (new Date(expiresAt) > new Date()) {
-        isAuthenticated.value = true
-        user.value = sessionUser
-      } else {
-        // Se expirou, faz logout
-        logout()
-      }
-    }
-  }
-
-  return {
-    isAuthenticated,
-    user,
-    login,
-    logout,
-    register,
-    checkAuth
-  }
+    setAuth(user: User, token: string) {
+      this.user = user
+      this.token = token
+      localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('token', token)
+    },
+  },
 })
