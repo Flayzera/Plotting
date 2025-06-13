@@ -6,8 +6,18 @@ export const formatService = {
     }).format(value)
   },
 
-  date(value: string | Date): string {
-    return new Date(value).toLocaleDateString('pt-BR')
+  date(value: string | Date | undefined): string {
+    if (!value) return '';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('pt-BR');
+  },
+
+  datetime(value: string | Date | undefined): string {
+    if (!value) return '';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString('pt-BR');
   },
 
   id(value: number): string {
