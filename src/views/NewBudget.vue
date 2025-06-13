@@ -78,7 +78,7 @@
         <StepItem value="3">
           <Step>Lista de Materiais do orçamento</Step>
           <StepPanel v-slot="{ activateCallback }">
-            <DataTable :value="budget.materials">
+            <DataTable :value="budget.items">
               <template #header>
                 <div class="flex items-center justify-between">
                   <div class="flex flex-col gap-2">
@@ -88,33 +88,32 @@
                       nextBudgetId.toString().padStart(4, '0') }}</span>
                   </div>
                   <div class="flex justify-end gap-2">
-                    <Button icon="pi pi-check" @click="() => saveBudget(activateCallback)" severity="success" />
+                    <Button icon="pi pi-check" @click="() => saveBudget()" severity="success" />
                   </div>
                 </div>
               </template>
-              <Column class="!text-center" field="name" header="Produto"></Column>
+              <Column class="!text-center" field="description" header="Produto"></Column>
               <Column class="!text-center" field="quantity" header="Quantidade"></Column>
               <Column class="!text-center" field="unit" header="Unidade"></Column>
-              <Column class="!text-center" field="price" header="Valor Unitário">
+              <Column class="!text-center" field="unitPrice" header="Valor Unitário">
                 <template #body="slotProps">
-                  {{ formatCurrency(slotProps.data.price) }}
+                  {{ formatService.currency(slotProps.data.unitPrice) }}
                 </template>
               </Column>
               <Column class="!text-center" field="total" header="Valor Total">
                 <template #body="slotProps">
-                  {{ formatCurrency(slotProps.data.total) }}
+                  {{ formatService.currency(slotProps.data.total) }}
                 </template>
               </Column>
               <Column class="!text-center" header="Ações">
                 <template #body="slotProps">
-                  <Button icon="pi pi-trash" severity="danger" text
-                    @click="handleDeleteMaterial(slotProps.data.id.toString())" />
+                  <Button icon="pi pi-trash" severity="danger" text @click="handleDeleteMaterial(slotProps.data.id)" />
                 </template>
               </Column>
             </DataTable>
             <div class="flex justify-between my-4">
               <Button type="button" label="Voltar" @click="activateCallback('2')" />
-              <span class="text-xl font-bold mr-4">Total: {{ formatCurrency(budget.total) }}</span>
+              <span class="text-xl font-bold mr-4">Total: {{ formatService.currency(budget.total) }}</span>
             </div>
 
           </StepPanel>
@@ -150,12 +149,12 @@
 
         <div class="text-base md:text-lg">
           <span class="font-semibold">Total de Materiais:</span>
-          <span class="ml-2">{{ budget.materials.length }}</span>
+          <span class="ml-2">{{ budget.items.length }}</span>
         </div>
 
         <div class="text-base md:text-lg">
           <span class="font-semibold">Valor Total:</span>
-          <span class="ml-2 text-green-600 font-bold">{{ formatCurrency(budget.total) }}</span>
+          <span class="ml-2 text-green-600 font-bold">{{ formatService.currency(budget.total) }}</span>
         </div>
       </div>
     </div>
@@ -167,19 +166,17 @@
       <Button label="Ver Lista de Orçamentos" icon="pi pi-list" @click="router.push('/orcamentos')"
         class="w-full md:w-auto" />
     </div>
-
   </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watchEffect, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { storageService } from '../services/localStorage'
 import { useBudgetStore } from '../stores/budgetStore'
-import { IdGenerator } from '../utils/idGenerator'
-import type { BudgetData, Client, Material } from '../interfaces'
+import { useClientStore } from '../stores/client'
+import { formatService } from '../services/format'
+import type { BudgetData, Client, BudgetItem } from '../interfaces'
 import type { AutoCompleteOptionSelectEvent } from 'primevue/autocomplete'
-
 
 import InputText from 'primevue/inputtext'
 import AutoComplete from 'primevue/autocomplete'
@@ -196,14 +193,14 @@ import Toast from 'primevue/toast'
 import InputNumber from 'primevue/inputnumber'
 import Dialog from 'primevue/dialog'
 
-
-import { useConfirm } from "primevue/useconfirm"
-import { useToast } from "primevue/usetoast"
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
 const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
 const budgetStore = useBudgetStore()
+const clientStore = useClientStore()
 
 const clientName = ref('')
 const clientCompany = ref('')
@@ -215,8 +212,9 @@ const isDuplicating = ref(false)
 const currentStep = ref('1')
 const nextBudgetId = ref('0000')
 
-// Formulário de material usando a interface Material
-const materialForm = ref<Omit<Material, 'id'>>({
+const selectedClient = ref<Client | null>(null)
+
+const materialForm = ref({
   name: '',
   brand: '',
   quantity: 0,
@@ -227,32 +225,45 @@ const materialForm = ref<Omit<Material, 'id'>>({
 
 const budget = ref<BudgetData>({
   id: 0,
+  number: '',
   client: {
-    id: 0,
     name: '',
     company: '',
-    whatsapp: ''
+    phone: ''
   },
-  materials: [],
+  items: [],
+  subtotal: 0,
   total: 0,
   status: 'Pendente',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
+  createdBy: 0,
+  validUntil: new Date(),
+  createdAt: new Date(),
+  updatedAt: new Date()
 })
 
 const getNextBudgetId = async () => {
-  const existingBudgets = await storageService.getBudgets()
-  const maxId = Math.max(...existingBudgets.map(b => b.id), 0)
+  const existingBudgets = budgetStore.budgets
+  const maxId = Math.max(...existingBudgets.map((b: BudgetData) => b.id), 0)
   nextBudgetId.value = (maxId + 1).toString().padStart(4, '0')
 }
 
-
 const searchClients = async (event: { query: string }) => {
   if (event.query.length > 0) {
-    const clients = await storageService.getClients()
-    filteredClients.value = clients.filter(client =>
-      client.name.toLowerCase().includes(event.query.toLowerCase())
-    )
+    loading.value = true
+    try {
+      const clients = await clientStore.searchClients(event.query)
+      filteredClients.value = clients
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error)
+      toast.add({
+        severity: 'error',
+        summary: 'Erro',
+        detail: 'Erro ao buscar clientes. Tente novamente.',
+        life: 3000
+      })
+    } finally {
+      loading.value = false
+    }
   } else {
     filteredClients.value = []
   }
@@ -260,14 +271,14 @@ const searchClients = async (event: { query: string }) => {
 
 const onClientSelect = (event: AutoCompleteOptionSelectEvent) => {
   const client = event.value as Client
+  selectedClient.value = client
   clientName.value = client.name
   clientCompany.value = client.company
-  clientWhatsapp.value = client.whatsapp
-  filteredClients.value = []
+  clientWhatsapp.value = client.phone
 }
 
-const handleAddMaterial = async () => {
-  if (!materialForm.value.name || !materialForm.value.brand || !materialForm.value.quantity || !materialForm.value.price) {
+const handleAddMaterial = () => {
+  if (!materialForm.value.name || !materialForm.value.quantity || !materialForm.value.price) {
     toast.add({
       severity: 'error',
       summary: 'Erro',
@@ -278,51 +289,51 @@ const handleAddMaterial = async () => {
   }
 
   confirm.require({
-    message: 'Deseja adicionar o material?',
-    header: 'Confirmar',
-    icon: 'pi pi-exclamation-triangle',
-    acceptLabel: 'Sim',
-    rejectLabel: 'Não',
-    accept: async () => {
-      try {
-        const material: Material = {
-          id: IdGenerator.getNextMaterialId(budget.value.materials),
-          ...materialForm.value
-        }
+    message: 'Tem certeza que deseja adicionar este material ao orçamento?',
+    header: 'Confirmar Adição',
+    icon: 'pi pi-question-circle',
+    acceptProps: {
+      label: 'Sim',
+      severity: 'success',
+    },
+    rejectProps: {
+      label: 'Não',
+      severity: 'secondary',
+    },
+    accept: () => {
+      const item: BudgetItem = {
+        id: Date.now(),
+        description: materialForm.value.name,
+        quantity: materialForm.value.quantity,
+        unit: materialForm.value.unit,
+        unitPrice: materialForm.value.price,
+        total: materialForm.value.quantity * materialForm.value.price
+      }
 
-        budget.value.materials.push(material)
-        budget.value.total = budget.value.materials.reduce((sum, m) => sum + m.total, 0)
+      budget.value.items.push(item)
+      budget.value.total = budget.value.items.reduce((sum, m) => sum + m.total, 0)
 
-        // Limpa o formulário
-        materialForm.value = {
-          name: '',
-          brand: '',
-          quantity: 0,
-          unit: 'cm',
-          price: 0,
-          total: 0
-        }
+      toast.add({
+        severity: 'success',
+        summary: 'Sucesso',
+        detail: 'Material adicionado com sucesso!',
+        life: 3000
+      })
 
-        toast.add({
-          severity: 'success',
-          summary: 'Sucesso',
-          detail: 'Material adicionado com sucesso',
-          life: 3000
-        })
-      } catch (error) {
-        console.error('Erro ao adicionar material:', error)
-        toast.add({
-          severity: 'error',
-          summary: 'Erro',
-          detail: 'Erro ao adicionar material. Tente novamente.',
-          life: 3000
-        })
+      // Reset form
+      materialForm.value = {
+        name: '',
+        brand: '',
+        quantity: 0,
+        unit: 'cm',
+        price: 0,
+        total: 0
       }
     }
   })
 }
 
-const handleDeleteMaterial = (id: string) => {
+const handleDeleteMaterial = (id: number) => {
   confirm.require({
     message: 'Tem certeza que deseja excluir este material?',
     header: 'Confirmar Exclusão',
@@ -337,10 +348,8 @@ const handleDeleteMaterial = (id: string) => {
     },
     accept: async () => {
       try {
-        const materialId = parseInt(id)
-        budget.value.materials = budget.value.materials.filter(m => m.id !== materialId)
-        budget.value.total = budget.value.materials.reduce((sum, m) => sum + m.total, 0)
-        await budgetStore.deleteMaterial(id)
+        budget.value.items = budget.value.items.filter(item => item.id !== id)
+        budget.value.total = budget.value.items.reduce((sum, m) => sum + m.total, 0)
         toast.add({
           severity: 'success',
           summary: 'Sucesso',
@@ -360,154 +369,105 @@ const handleDeleteMaterial = (id: string) => {
   })
 }
 
-const checkDuplicateBudget = async () => {
-  const existingBudgets = await storageService.getBudgets()
-  return existingBudgets.find(b =>
-    b.client.name === budget.value.client.name &&
-    b.client.company === budget.value.client.company &&
-    b.materials.length === budget.value.materials.length &&
-    b.total === budget.value.total &&
-    JSON.stringify(b.materials.map(m => ({ ...m, id: 0 })).sort()) ===
-    JSON.stringify(budget.value.materials.map(m => ({ ...m, id: 0 })).sort())
-  )
-}
-
-const confirmDuplication = (activateCallback: (step: string) => void) => {
-  confirm.require({
-    message: 'Um orçamento idêntico já existe. Deseja criar uma duplicata?',
-    header: 'Orçamento Duplicado',
-    icon: 'pi pi-exclamation-triangle',
-    acceptLabel: 'Sim, Duplicar',
-    rejectLabel: 'Não, Cancelar',
-    accept: async () => {
-      isDuplicating.value = true
-      await saveBudgetToStorage()
-      showSuccessDialog.value = true
-    },
-    reject: () => {
-      toast.add({
-        severity: 'info',
-        summary: 'Cancelado',
-        detail: 'Operação cancelada pelo usuário',
-        life: 3000,
-      })
-      resetForm()
-      goToStep(activateCallback, '1')
-    }
-  })
-}
-
-const saveBudgetToStorage = async () => {
-  const existingBudgets = await storageService.getBudgets()
-  const maxId = Math.max(...existingBudgets.map(b => b.id), 0)
-  budget.value.id = maxId + 1
-  existingBudgets.unshift(budget.value)
-  await storageService.saveBudgets(existingBudgets)
-}
-
 const resetForm = () => {
   clientName.value = ''
   clientCompany.value = ''
   clientWhatsapp.value = ''
   budget.value = {
     id: 0,
+    number: '',
     client: {
-      id: 0,
       name: '',
       company: '',
-      whatsapp: ''
+      phone: ''
     },
-    materials: [],
+    items: [],
+    subtotal: 0,
     total: 0,
     status: 'Pendente',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdBy: 0,
+    validUntil: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date()
   }
   showSuccessDialog.value = false
   isDuplicating.value = false
   currentStep.value = '1'
 }
 
-const saveBudget = async (activateCallback: (step: string) => void) => {
+const saveBudget = async () => {
   try {
     if (!clientName.value || !clientCompany.value || !clientWhatsapp.value) {
-      toast.add({
-        severity: 'error',
-        summary: 'Erro',
-        detail: 'Por favor, preencha todos os campos antes de salvar o orçamento.',
-        life: 3000
-      })
+      toast.add({ severity: 'error', summary: 'Erro', detail: 'Preencha todos os campos do cliente.', life: 3000 })
       return
     }
-
-    if (budget.value.materials.length === 0) {
-      toast.add({
-        severity: 'error',
-        summary: 'Erro',
-        detail: 'Adicione pelo menos um material ao orçamento.',
-        life: 3000
-      })
+    if (!budget.value.items || budget.value.items.length === 0) {
+      toast.add({ severity: 'error', summary: 'Erro', detail: 'Adicione pelo menos um material.', life: 3000 })
       return
     }
-
     loading.value = true
+    let clientId: number
 
-    // Busca todos os clientes para verificar se já existe
-    const allClients = await storageService.getClients()
-    const existingClient = allClients.find(c =>
-      c.name === clientName.value &&
-      c.company === clientCompany.value &&
-      c.whatsapp === clientWhatsapp.value
-    )
+    // Se não tiver um cliente selecionado, primeiro busca se existe
+    if (!selectedClient.value) {
+      const existingClients = await clientStore.searchClients(clientName.value)
+      const existingClient = existingClients.find(c =>
+        c.name.toLowerCase() === clientName.value.toLowerCase() ||
+        c.company.toLowerCase() === clientCompany.value.toLowerCase()
+      )
 
-    let savedClient: Client
-    if (existingClient) {
-      savedClient = await storageService.updateClient(existingClient)
+      if (existingClient) {
+        clientId = existingClient.id
+      } else {
+        // Só cria se realmente não existir
+        const newClient = await clientStore.createClient({
+          name: clientName.value,
+          company: clientCompany.value,
+          phone: clientWhatsapp.value,
+          createdBy: 1
+        })
+        clientId = newClient.id
+      }
     } else {
-      const newClient: Client = {
-        id: 0,
+      clientId = selectedClient.value.id
+    }
+
+    const budgetData = {
+      clientId,
+      items: Array.isArray(budget.value.items) ? budget.value.items.map(item => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        total: item.total
+      })) : [],
+      total: budget.value.total,
+      pdfData: `budget_${Date.now()}.pdf`,
+      status: 'Pendente' as const
+    }
+
+    const response = await budgetStore.createBudget(budgetData)
+    // Atualiza o budget com os dados retornados e adiciona o cliente
+    budget.value = {
+      ...response,
+      client: {
         name: clientName.value,
         company: clientCompany.value,
-        whatsapp: clientWhatsapp.value
+        phone: clientWhatsapp.value
       }
-      savedClient = await storageService.saveClient(newClient)
     }
-
-    budget.value.client = savedClient
-    budget.value.total = budget.value.materials.reduce((sum, material) => sum + material.total, 0)
-
-    // Verifica se já existe um orçamento idêntico
-    if (!isDuplicating.value && await checkDuplicateBudget()) {
-      confirmDuplication(activateCallback)
-      return
-    }
-
-    // Se não for duplicado ou se já confirmou a duplicação, salva
-    await saveBudgetToStorage()
     showSuccessDialog.value = true
-
   } catch (error) {
     console.error('Erro ao salvar orçamento:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Erro',
-      detail: 'Erro ao gerar orçamento. Tente novamente.',
-      life: 3000
-    })
+    toast.add({ severity: 'error', summary: 'Erro', detail: 'Erro ao gerar orçamento. Tente novamente.', life: 3000 })
   } finally {
     loading.value = false
   }
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(value)
-}
-
 const goToNextStep = (activateCallback: (step: string) => void) => {
-  if (budget.value.materials.length === 0) {
+  if (budget.value.items.length === 0) {
     toast.add({
       severity: 'error',
       summary: 'Erro',
@@ -517,11 +477,6 @@ const goToNextStep = (activateCallback: (step: string) => void) => {
     return
   }
   activateCallback('3')
-}
-
-const goToStep = (activateCallback: (step: string) => void, step: string) => {
-  currentStep.value = step
-  activateCallback(step)
 }
 
 onMounted(getNextBudgetId)

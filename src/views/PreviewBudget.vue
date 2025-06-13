@@ -26,8 +26,8 @@
             </div>
 
             <div class="flex flex-col gap-2 w-full md:w-1/2 md:pr-2 mb-4">
-              <span class="text-gray-600 dark:text-gray-400">WhatsApp:</span>
-              <span class="font-medium">{{ budget.client.whatsapp }}</span>
+              <span class="text-gray-600 dark:text-gray-400">Telefone:</span>
+              <span class="font-medium">{{ budget.client.phone }}</span>
             </div>
 
             <div class="flex flex-col gap-2 w-full md:w-1/2 md:pl-2 mb-4">
@@ -41,28 +41,17 @@
 
         <div class="mb-6">
           <h2 class="text-xl font-semibold mb-4">Materiais</h2>
-          <DataTable :value="budget.materials" class="p-datatable-sm">
-            <Column class="text-center" field="name" header="Produto"></Column>
-
-            <Column class="text-center" field="brand" header="Marca"></Column>
-
+          <DataTable :value="budget.items" class="p-datatable-sm">
+            <Column class="text-center" field="description" header="Produto"></Column>
             <Column class="text-center" field="quantity" header="Quantidade"></Column>
-
-            <Column class="text-center" field="unit" header="Unidade">
+            <Column class="text-center" field="unitPrice" header="Valor Unitário">
               <template #body="{ data }">
-                {{ data.unit }}cm
+                {{ formatService.currency(data.unitPrice) }}
               </template>
             </Column>
-
-            <Column class="text-center" field="price" header="Valor Unitário">
-              <template #body="{ data }">
-                {{ formatCurrency(data.price) }}
-              </template>
-            </Column>
-
             <Column class="text-center" field="total" header="Total">
               <template #body="{ data }">
-                {{ formatCurrency(data.total) }}
+                {{ formatService.currency(data.total) }}
               </template>
             </Column>
           </DataTable>
@@ -72,19 +61,19 @@
           class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 bg-surface-100 dark:bg-surface-800 rounded">
           <div class="flex flex-col gap-2">
             <span class="text-gray-600 dark:text-gray-400">Número do Orçamento:</span>
-            <span class="font-medium">#{{ budget.id.toString().padStart(4, '0') }}</span>
+            <span class="font-medium">#{{ budget.number }}</span>
           </div>
           <div class="flex flex-col gap-2">
             <span class="text-gray-600 dark:text-gray-400">Data de Criação:</span>
-            <span class="font-medium">{{ new Date(budget.createdAt).toLocaleString('pt-BR') }}</span>
+            <span class="font-medium">{{ formatService.date(budget.createdAt) }}</span>
           </div>
           <div class="flex flex-col gap-2">
             <span class="text-gray-600 dark:text-gray-400">Última Atualização:</span>
-            <span class="font-medium">{{ new Date(budget.updatedAt).toLocaleString('pt-BR') }}</span>
+            <span class="font-medium">{{ formatService.date(budget.updatedAt) }}</span>
           </div>
           <div class="flex flex-col gap-2">
             <span class="text-gray-600 dark:text-gray-400">Valor Total:</span>
-            <span class="font-bold text-xl text-green-600">{{ formatCurrency(budget.total) }}</span>
+            <span class="font-bold text-xl text-green-600">{{ formatService.currency(budget.total) }}</span>
           </div>
         </div>
       </div>
@@ -123,12 +112,12 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { ref, onMounted } from 'vue'
-import { storageService } from '../services/localStorage'
+import { ref, onMounted, createApp } from 'vue'
+import { useBudgetStore } from '../stores/budgetStore'
+import { formatService } from '../services/format'
 import { pdfService } from '../services/pdf'
-import type { BudgetData, BudgetStatus } from '../interfaces'
+import type { BudgetData } from '../interfaces'
 import type { PrintLayoutInstance } from '../interfaces/print'
-import { useToast } from 'primevue/usetoast'
 
 import PrintLayout from '../components/PrintLayout.vue'
 
@@ -139,60 +128,59 @@ import Tag from 'primevue/tag'
 import ProgressSpinner from 'primevue/progressspinner'
 import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const budgetStore = useBudgetStore()
+
 const budget = ref<BudgetData | null>(null)
 const loading = ref(true)
 const showPrintDialog = ref(false)
 const printRef = ref<PrintLayoutInstance | null>(null)
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(value)
-}
-
-const getStatusSeverity = (status: BudgetStatus) => {
+const getStatusSeverity = (status: BudgetData['status']) => {
   switch (status) {
     case 'Pendente':
       return 'warn'
     case 'Aprovado':
-      return 'success'
-    case 'Concluido':
       return 'info'
     case 'Rejeitado':
       return 'danger'
+    case 'Concluido':
+      return 'success'
     default:
       return 'info'
   }
 }
 
+
 const savePDF = async () => {
   try {
-    if (!printRef.value) {
-      throw new Error('Elemento de impressão não encontrado')
-    }
-
     if (!budget.value) {
       throw new Error('Orçamento não encontrado')
     }
 
-    // Obter o elemento HTML do componente
-    const printElement = printRef.value.printRef()
-    if (!printElement) {
-      throw new Error('Elemento de impressão não encontrado')
-    }
+    // Criar um elemento temporário para o layout de impressão
+    const printElement = document.createElement('div')
+    printElement.className = 'print-layout'
+
+    // Criar uma instância do Vue para renderizar o componente
+    const app = createApp(PrintLayout, { budget: budget.value })
+    app.mount(printElement)
 
     // Aguardar um momento para garantir que o componente foi renderizado
     await new Promise(resolve => setTimeout(resolve, 100))
 
+    // Gerar o PDF
     await pdfService.generatePDF(
       printElement,
-      `orcamento-${budget.value.id.toString().padStart(4, '0')}.pdf`
+      `orcamento-${budget.value.number}.pdf`
     )
+
+    // Limpar
+    app.unmount()
 
     toast.add({
       severity: 'success',
@@ -213,11 +201,29 @@ const savePDF = async () => {
 
 onMounted(async () => {
   try {
-    const budgets = await storageService.getBudgets()
-    const foundBudget = budgets.find(b => b.id === parseInt(route.params.id as string))
-    budget.value = foundBudget || null
+    const id = parseInt(route.params.id as string)
+    const fetchedBudget = await budgetStore.fetchBudgetById(id)
+    if (!fetchedBudget) {
+      throw new Error('Orçamento não encontrado')
+    }
+    budget.value = {
+      ...fetchedBudget,
+      client: fetchedBudget.client || {
+        name: '',
+        company: '',
+        phone: ''
+      },
+      items: fetchedBudget.items || []
+    }
   } catch (error) {
     console.error('Erro ao carregar orçamento:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Erro',
+      detail: 'Erro ao carregar orçamento. Tente novamente.',
+      life: 3000
+    })
+    budget.value = null
   } finally {
     loading.value = false
   }

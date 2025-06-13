@@ -23,7 +23,7 @@
           <p>Proposta: #{{ formatService.id(budget.id) }}</p>
           <p>Plotting Soluções Visuais LTDA</p>
           <p>30.912.485/0001-50</p>
-          <p>{{ formatService.date(budget.createdAt) }}</p>
+          <p>{{ budget.createdAt ? formatService.date(budget.createdAt) : '' }}</p>
         </div>
       </div>
     </div>
@@ -40,11 +40,11 @@
         </thead>
 
         <tbody>
-          <tr v-for="material in budget.materials" :key="material.id">
-            <td>{{ material.name }}</td>
-            <td>{{ formatService.currency(material.price) }}</td>
-            <td>{{ material.quantity }} {{ material.unit }}cm</td>
-            <td>{{ formatService.currency(material.total) }}</td>
+          <tr v-for="item in budget.items" :key="item.description">
+            <td>{{ item.description }}</td>
+            <td>{{ formatService.currency(item.unitPrice) }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ formatService.currency(item.total) }}</td>
           </tr>
         </tbody>
       </table>
@@ -65,7 +65,7 @@
     <div class="signature">
       <div class="signature-line">
         <p>Tercio Cipriano Varão</p>
-        <p>097.041.173-01</p>
+        <p>087.041.173-01</p>
       </div>
     </div>
   </div>

@@ -2,8 +2,10 @@
   <div class="p-3">
     <Menubar :model="items" class="mb-4">
       <template #start>
-        <img src="../assets/logo-colorido.png" alt="logo" class="hidden lg:block dark:hidden h-5 w-20">
-        <img src="../assets/logo-dark.png" alt="logo" class="hidden lg:dark:block h-5 w-20">
+        <router-link to="/" class="cursor-pointer">
+          <img src="../assets/logo-colorido.png" alt="logo" class="hidden lg:block dark:hidden h-5 w-20">
+          <img src="../assets/logo-dark.png" alt="logo" class="hidden lg:dark:block h-5 w-20">
+        </router-link>
       </template>
       <template #end>
         <PButton v-if="authStore.isAuthenticated" icon="pi pi-sign-out" label="Sair" class="p-button-danger"

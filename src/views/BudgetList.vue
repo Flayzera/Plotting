@@ -4,7 +4,6 @@
       <h1 class="text-4xl font-bold">Orçamentos</h1>
       <Button @click="navigateToNew" label=" Novo Orçamento" class="!hidden md:!block" />
       <Button @click="navigateToNew" icon="pi pi-plus" class="!block md:!hidden" />
-
     </div>
 
     <div v-for="status in statusOptions" :key="status.code" class="mb-8">
@@ -14,7 +13,8 @@
 
       <DataTable :value="getBudgetsByStatus(status.code)" paginator :rows="5" :rowsPerPageOptions="[5, 10, 20, 50]"
         currentPageReportTemplate="{first} to {last} of {totalRecords}"
-        paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink">
+        paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink"
+        :rowHover="true" dataKey="id">
 
         <Column header="Proposta" bodyStyle="text-align: center">
           <template #body="{ data }">
@@ -26,7 +26,7 @@
 
         <Column field="createdAt" header="Data Criação" bodyStyle="text-align: center">
           <template #body="{ data }">
-            {{ new Date(data.createdAt).toLocaleDateString('pt-BR') }}
+            {{ formatService.date(data.createdAt) }}
           </template>
         </Column>
 
@@ -48,8 +48,8 @@
 
         <Column field="status" header="Status" bodyStyle="text-align: center">
           <template #body="{ data }">
-            <Select v-model="data.status" :options="statusOptions" optionLabel="name" optionValue="code"
-              @change="handleStatusChange(data)" />
+            <Dropdown v-model="data.status" :options="statusOptions" optionLabel="name" optionValue="code"
+              @change="(e) => handleStatusChange(data.id, e.value)" />
           </template>
         </Column>
 
@@ -94,10 +94,8 @@
     </div>
   </div>
 
-
   <ConfirmDialog />
   <Toast />
-
 </template>
 
 <script setup lang="ts">
@@ -105,20 +103,21 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import ConfirmDialog from 'primevue/confirmdialog'
-import Select from 'primevue/select'
+import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
 import { ref, onMounted, createApp } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { useConfirm } from 'primevue/useconfirm'
-import { useToast } from 'primevue/usetoast'
 
 import { useBudgetStore } from '../stores/budgetStore'
-import type { BudgetData, BudgetStatus } from '../interfaces'
+import type { BudgetData } from '../interfaces'
 
 import { pdfService } from '../services/pdf'
+import { formatService } from '../services/format'
 
 import PrintLayout from '../components/PrintLayout.vue'
 
@@ -128,19 +127,30 @@ const toast = useToast()
 const budgetStore = useBudgetStore()
 
 const statusOptions = ref([
-  { name: 'Pendente', code: 'Pendente' as BudgetStatus },
-  { name: 'Aprovado', code: 'Aprovado' as BudgetStatus },
-  { name: 'Concluído', code: 'Concluido' as BudgetStatus },
-  { name: 'Rejeitado', code: 'Rejeitado' as BudgetStatus },
+  { name: 'Pendente', code: 'Pendente' as BudgetData['status'] },
+  { name: 'Aprovado', code: 'Aprovado' as BudgetData['status'] },
+  { name: 'Rejeitado', code: 'Rejeitado' as BudgetData['status'] },
+  { name: 'Concluido', code: 'Concluido' as BudgetData['status'] },
 ])
+
+// Removido: Estado local desnecessário para controlar status
 
 const navigateToNew = () => {
   router.push('/novo-orcamento')
 }
 
-const handleStatusChange = async (budget: BudgetData) => {
+const handleStatusChange = async (budgetId: number, newStatus: BudgetData['status']) => {
   try {
-    await budgetStore.updateBudget(budget.id.toString(), { status: budget.status })
+    // Primeiro atualiza no backend
+    await budgetStore.updateBudget(budgetId, { status: newStatus })
+
+    // Atualiza o store local de forma imutável
+    budgetStore.budgets = budgetStore.budgets.map(budget =>
+      budget.id === budgetId
+        ? { ...budget, status: newStatus }
+        : budget
+    )
+
     toast.add({
       severity: 'success',
       summary: 'Sucesso',
@@ -149,6 +159,8 @@ const handleStatusChange = async (budget: BudgetData) => {
     })
   } catch (error) {
     console.error('Erro ao atualizar status:', error)
+    // Em caso de erro, recarrega os orçamentos para garantir consistência
+    await budgetStore.fetchBudgets()
     toast.add({
       severity: 'error',
       summary: 'Erro',
@@ -160,12 +172,15 @@ const handleStatusChange = async (budget: BudgetData) => {
 
 const generatePDF = async (budget: BudgetData) => {
   try {
+    // Ensure we have the complete budget data with client
+    const completeBudget = await budgetStore.fetchBudgetById(budget.id);
+
     // Criar um elemento temporário para o layout de impressão
     const printElement = document.createElement('div')
     printElement.className = 'print-layout'
 
     // Criar uma instância do Vue para renderizar o componente
-    const app = createApp(PrintLayout, { budget })
+    const app = createApp(PrintLayout, { budget: completeBudget })
     app.mount(printElement)
 
     // Aguardar um momento para garantir que o componente foi renderizado
@@ -201,7 +216,7 @@ const navigateToBudget = (id: string) => {
   router.push(`/orcamento/${id}`)
 }
 
-const handleDeleteBudget = (id: string) => {
+const handleDeleteBudget = (id: number) => {
   confirm.require({
     message: 'Tem certeza que deseja excluir este orçamento?',
     header: 'Confirmar Exclusão',
@@ -243,22 +258,24 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
-const getBudgetsByStatus = (status: BudgetStatus) => {
-  return budgetStore.budgets.filter(b => b.status === status)
+const getBudgetsByStatus = (status: BudgetData['status']) => {
+  return budgetStore.budgets
+    .filter(b => b.status === status)
+    .map(budget => ({ ...budget })) // Cria uma cópia de cada orçamento
 }
 
-const getTotalValueByStatus = (status: BudgetStatus) => {
+const getTotalValueByStatus = (status: BudgetData['status']) => {
   return getBudgetsByStatus(status).reduce((sum, budget) => sum + budget.total, 0)
 }
 
-const getStatusSeverity = (status: BudgetStatus) => {
+const getStatusSeverity = (status: BudgetData['status']) => {
   switch (status) {
     case 'Pendente':
       return 'warn'
     case 'Aprovado':
-      return 'success'
-    case 'Concluido':
       return 'info'
+    case 'Concluido':
+      return 'success'
     case 'Rejeitado':
       return 'danger'
     default:
@@ -268,9 +285,17 @@ const getStatusSeverity = (status: BudgetStatus) => {
 
 onMounted(async () => {
   try {
-    await budgetStore.loadBudgets()
-  } catch {
-    // Não mostrar erro aqui, pois é esperado não ter orçamentos no início
+    console.log('Fetching budgets...')
+    await budgetStore.fetchBudgets()
+    console.log('Budgets fetched:', budgetStore.budgets)
+  } catch (error) {
+    console.error('Error fetching budgets:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Erro',
+      detail: 'Erro ao carregar orçamentos. Tente novamente.',
+      life: 3000
+    })
   }
 })
 </script>

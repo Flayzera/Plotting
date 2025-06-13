@@ -46,6 +46,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import FloatLabel from 'primevue/floatlabel'
+
 const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
@@ -76,13 +77,14 @@ const handleValidation = (isRegistering = false) => {
     })
     return false
   }
+
   return true
 }
 
 const handleLogin = async () => {
   try {
     clearErrors()
-    const success = await authStore.login(formData)
+    const success = await authStore.login(formData.email, formData.password)
 
     if (success) {
       toast.add({
@@ -115,7 +117,7 @@ const handleRegister = async () => {
   try {
     if (!handleValidation(true)) return
 
-    const success = await authStore.register(formData)
+    const success = await authStore.register(formData.email, formData.password)
     if (success) {
       toast.add({
         severity: 'success',
