@@ -173,7 +173,7 @@
 import { ref, watchEffect, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBudgetStore } from '../stores/budgetStore'
-import { useClientStore } from '../stores/clientStore'
+import { useClientStore } from '../stores/client'
 import { formatService } from '../services/format'
 import type { BudgetData, Client, BudgetItem } from '../interfaces'
 import type { AutoCompleteOptionSelectEvent } from 'primevue/autocomplete'
