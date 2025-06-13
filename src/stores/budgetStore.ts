@@ -1,162 +1,205 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
 
-import type { BudgetData, Material } from '../interfaces'
+import type { BudgetData, BudgetItem } from '../interfaces'
 import { budgetRules } from '../validations/budgetRules'
-import { storageService } from '../services/storage'
+import { budgets } from '../services/api'
 
-export const useBudgetStore = defineStore('budget', () => {
-  const budgets = ref<BudgetData[]>([])
+interface BudgetState {
+  budgets: BudgetData[];
+  currentBudget: BudgetData | null;
+  loading: boolean;
+  error: string | null;
+}
 
-  const currentBudget = ref<BudgetData>({
-    id: 0,
-    status: 'Pendente',
-    client: {
-      id: 0,
-      name: '',
-      company: '',
-      whatsapp: '',
+interface ApiError {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+}
+
+export const useBudgetStore = defineStore('budget', {
+  state: (): BudgetState => ({
+    budgets: [],
+    currentBudget: null,
+    loading: false,
+    error: null,
+  }),
+
+  getters: {
+    getBudgetById: (state) => (id: number) => {
+      return state.budgets.find((budget: BudgetData) => budget.id === id);
     },
-    materials: [],
-    total: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  })
+  },
 
-  const nextProposalNumber = computed(() => {
-    const lastBudget = budgets.value[budgets.value.length - 1]
-    if (!lastBudget) return '0001'
-
-    const lastNumber = parseInt(lastBudget.id.toString())
-    return String(lastNumber + 1).padStart(4, '0')
-  })
-
-  const validateBudget = (budget: BudgetData): string[] => {
-    return budgetRules.budget.validate(budget)
-  }
-
-  const addBudget = async (budget: BudgetData) => {
-    try {
-      const newBudget = await storageService.saveBudget(budget)
-      budgets.value.push(newBudget)
-      return newBudget;
-    } catch (error) {
-      console.error('Erro ao adicionar orçamento:', error);
-      throw error;
-    }
-  }
-
-  const updateBudget = async (id: string, updates: Partial<BudgetData>) => {
-    try {
-      const budgetToUpdate = budgets.value.find(b => b.id === parseInt(id))
-
-      if (!budgetToUpdate) {
-        throw new Error('Orçamento não encontrado')
+  actions: {
+    async fetchBudgets() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await budgets.getAll();
+        this.budgets = response.map(budget => ({
+          ...budget,
+          status: budget.status || 'Pendente'
+        }));
+        return this.budgets;
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        this.error = apiError.response?.data?.error || 'Error fetching budgets';
+        throw error;
+      } finally {
+        this.loading = false;
       }
+    },
 
-      const updatedBudget = {
-        ...budgetToUpdate,
-        ...updates,
-        updatedAt: new Date().toISOString()
+    async fetchBudgetById(id: number) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const budget = await budgets.getById(id.toString());
+        this.currentBudget = budget;
+        return this.currentBudget;
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        this.error = apiError.response?.data?.error || 'Error fetching budget';
+        throw error;
+      } finally {
+        this.loading = false;
       }
+    },
 
-      const errors = validateBudget(updatedBudget)
-      if (errors.length > 0) {
-        throw new Error(errors.join('\n'))
+    async createBudget(data: {
+      clientId: number;
+      items: BudgetItem[];
+      total: number;
+      pdfData: string;
+      status: BudgetData['status'];
+    }) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const budget = await budgets.create(data);
+        this.budgets.push(budget);
+        return budget;
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        this.error = apiError.response?.data?.error || 'Error creating budget';
+        throw error;
+      } finally {
+        this.loading = false;
       }
+    },
 
-      await storageService.updateBudget(updatedBudget)
-      const index = budgets.value.findIndex(b => b.id === parseInt(id))
-      if (index !== -1) {
-        budgets.value[index] = updatedBudget
+    async updateBudget(id: number, budgetData: Partial<BudgetData>) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const updatedBudget = await budgets.update(id.toString(), budgetData);
+        const index = this.budgets.findIndex((b: BudgetData) => b.id === id);
+        if (index !== -1) {
+          this.budgets[index] = updatedBudget;
+        }
+        if (this.currentBudget?.id === id) {
+          this.currentBudget = updatedBudget;
+        }
+        return updatedBudget;
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        this.error = apiError.response?.data?.error || 'Error updating budget';
+        throw error;
+      } finally {
+        this.loading = false;
       }
-      return updatedBudget
-    } catch (error) {
-      console.error('Erro ao atualizar orçamento:', error)
-      throw error
-    }
-  }
+    },
 
-  const deleteBudget = async (id: string) => {
-    try {
-      await storageService.deleteBudget(parseInt(id))
-      budgets.value = budgets.value.filter(b => b.id !== parseInt(id))
-    } catch (error) {
-      console.error('Erro ao deletar orçamento:', error)
-      throw error
-    }
-  }
-
-  const loadBudgets = async () => {
-    try {
-      budgets.value = await storageService.getBudgets()
-    } catch (error) {
-      console.error('Erro ao carregar orçamentos:', error)
-      throw error
-    }
-  }
-
-  const addMaterial = async (material: Material) => {
-    try {
-      currentBudget.value.materials.push(material)
-    } catch (error) {
-      console.error('Erro ao adicionar material:', error)
-      throw error
-    }
-  }
-
-  const updateMaterial = async (id: string, updates: Partial<Material>) => {
-    try {
-      const index = currentBudget.value.materials.findIndex(m => m.id === parseInt(id))
-      if (index !== -1) {
-        currentBudget.value.materials[index] = { ...currentBudget.value.materials[index], ...updates }
+    async deleteBudget(id: number) {
+      this.loading = true;
+      this.error = null;
+      try {
+        await budgets.delete(id.toString());
+        this.budgets = this.budgets.filter((b: BudgetData) => b.id !== id);
+        if (this.currentBudget?.id === id) {
+          this.currentBudget = null;
+        }
+      } catch (error: unknown) {
+        const apiError = error as ApiError;
+        this.error = apiError.response?.data?.error || 'Error deleting budget';
+        throw error;
+      } finally {
+        this.loading = false;
       }
-      return currentBudget.value.materials[index]
-    } catch (error) {
-      console.error('Erro ao atualizar material:', error)
-      throw error
-    }
-  }
+    },
 
-  const deleteMaterial = async (id: string) => {
-    try {
-      currentBudget.value.materials = currentBudget.value.materials.filter(m => m.id !== parseInt(id))
-    } catch (error) {
-      console.error('Erro ao deletar material:', error)
-      throw error
-    }
-  }
+    clearCurrentBudget() {
+      this.currentBudget = null;
+    },
 
-  const resetCurrentBudget = () => {
-    currentBudget.value = {
-      id: 0,
-      status: 'Pendente',
-      client: {
+    nextProposalNumber() {
+      const lastBudget = this.budgets[this.budgets.length - 1]
+      if (!lastBudget) return '0001'
+
+      const lastNumber = parseInt(lastBudget.id.toString())
+      return String(lastNumber + 1).padStart(4, '0')
+    },
+
+    validateBudget(budget: BudgetData): string[] {
+      return budgetRules.budget.validate(budget)
+    },
+
+    async addBudget(data: { clientId: number; items: BudgetItem[]; total: number; pdfData: string }) {
+      try {
+        const newBudget = await budgets.create(data)
+        this.budgets.push(newBudget)
+        return newBudget;
+      } catch (error) {
+        console.error('Error adding budget:', error);
+        throw error;
+      }
+    },
+
+    async updateMaterial(id: number, updates: Partial<BudgetItem>) {
+      try {
+        if (!this.currentBudget) return;
+        const index = this.currentBudget.items.findIndex(m => m.description === updates.description)
+        if (index !== -1) {
+          this.currentBudget.items[index] = { ...this.currentBudget.items[index], ...updates }
+        }
+        return this.currentBudget.items[index]
+      } catch (error) {
+        console.error('Error updating material:', error)
+        throw error
+      }
+    },
+
+    resetCurrentBudget() {
+      this.currentBudget = {
         id: 0,
-        name: '',
-        company: '',
-        whatsapp: '',
-      },
-      materials: [],
-      total: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  }
+        number: '',
+        status: 'Pendente',
+        client: {
+          name: '',
+          company: '',
+          phone: '',
+        },
+        items: [],
+        subtotal: 0,
+        total: 0,
+        createdBy: 0,
+        validUntil: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    },
 
-  return {
-    budgets,
-    currentBudget,
-    nextProposalNumber,
-    validateBudget,
-    addBudget,
-    updateBudget,
-    deleteBudget,
-    loadBudgets,
-    resetCurrentBudget,
-
-    addMaterial,
-    updateMaterial,
-    deleteMaterial
+    async addItem(item: BudgetItem) {
+      try {
+        if (!this.currentBudget) return;
+        this.currentBudget.items.push(item)
+      } catch (error) {
+        console.error('Error adding item:', error)
+        throw error
+      }
+    },
   }
 })
