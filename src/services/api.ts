@@ -3,7 +3,7 @@ import type { InternalAxiosRequestConfig } from 'axios'
 import type { BudgetData, User, BudgetItem } from '../interfaces'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_URL,
   timeout: 5000, // 5 second timeout
   headers: {
     'Content-Type': 'application/json',
