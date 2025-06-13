@@ -10,10 +10,7 @@ import Aura from '@primeuix/themes/aura'
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
 
-
 const app = createApp(App)
-
-
 
 app.use(createPinia())
 app.use(router)
@@ -22,8 +19,6 @@ app.use(PrimeVue, {
     preset: Aura
   }
 })
-
-
 app.use(ConfirmationService)
 app.use(ToastService)
 app.mount('#app')
